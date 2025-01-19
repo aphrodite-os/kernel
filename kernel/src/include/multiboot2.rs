@@ -34,9 +34,7 @@ pub struct Tag {
     /// The type of the tag.
     pub tag_type: u32,
     /// The length of the tag.
-    pub tag_len: u32,
-    /// A pointer to after [tag_len](Tag::tag_len). This is where most type-specific data is.
-    pub data_ptr: *const u8
+    pub tag_len: u32
 }
 
 /// The root tag. The official Multiboot2 name is literally the "fixed part" of the tags, so I made a better name.
@@ -49,8 +47,6 @@ pub struct RootTag {
     pub total_len: u32,
     /// Reserved space. Unused for anything.
     reserved: u32,
-    /// A pointer to right after the reserved space. Should be a pointer to the next tag.
-    pub tag_ptr: *const u8
 }
 
 /// A Multiboot2 module. See https://github.com/AverseABFun/aphrodite/wiki/Plan/#Bootloader-modules (remember to update link later!).
@@ -220,10 +216,13 @@ pub struct BootInfo {
 
     // VBE table is ignored for a similar reason to above: it's deprecated. Good luck if you need it.
 
+    /// Provides information on the framebuffer.
     pub framebuffer_info: Option<FramebufferInfo>,
 
     // Even though SMBIOS is documented for Multiboot2, we're not using it and will instead search for it ourselves.
     // This is because right now I cannot figure out what format it provides the SMBIOS table in.
 
-    
+    // EFI memory map and image handle pointers are not included for portability.
+
+    // "Image load base physical address" is not included as at the moment the kernel is not relocatable.
 }
