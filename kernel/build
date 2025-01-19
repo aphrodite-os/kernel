@@ -1,0 +1,4 @@
+#!/bin/bash
+
+RUSTFLAGS='-Clink-arg=--script=link.x' cargo build --target i686-unknown-none.json --release -Zbuild-std
+cp target/i686-unknown-none/release/kernel kernel.flat

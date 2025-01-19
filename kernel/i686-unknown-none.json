@@ -1,0 +1,24 @@
+{
+	"cpu": "i686",
+	"data-layout": "e-m:e-p:32:32-p270:32:32-p271:32:32-p272:64:64-i128:128-f64:32:64-f80:32-n8:16:32-S128",
+	"llvm-target": "i686-unknown-none",
+	"target-endian": "little",
+	"target-pointer-width": "32",
+	"target-c-int-width": "32",
+	"features": "-mmx,-sse,+soft-float",
+	"os": "none",
+	"arch": "x86",
+  "panic-strategy": "abort",
+  "disable-redzone": true,
+  "code-model": "kernel",
+  "crt-objects-fallback": "false",
+  "linker": "rust-lld",
+  "linker-flavor": "gnu-lld",
+  "max-atomic-width": 32,
+  "metadata": {
+    "description": "Freestanding/bare-metal i686 softfloat",
+    "host_tools": false,
+    "std": false,
+    "tier": 3
+  }
+}

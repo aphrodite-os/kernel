@@ -1,0 +1,21 @@
+[package]
+name = "kernel"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[[bin]]
+name = "entrypoint"
+path = "src/internal/arch/x86/entry.rs"
+
+[lib]
+name = "aphrodite"
+path = "src/include/mod.rs"

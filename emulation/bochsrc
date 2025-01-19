@@ -1,0 +1,3 @@
+display_library: x, options="gui_debug"
+port_e9_hack: enabled=1
+cpu: reset_on_triple_fault=0
