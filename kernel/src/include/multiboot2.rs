@@ -1,7 +1,5 @@
 //! Definitions of structs for multiboot2 information. Mostly used during pre-userspace.
 
-#![warn(missing_docs)]
-
 /// Used when a CString is passed. Move into separate file?
 #[derive(Clone)]
 pub struct CString {
@@ -61,30 +59,6 @@ pub struct Module {
     pub mod_str: CString
 }
 
-/// All modules provided by the bootloader. Very similar to [CString].
-#[derive(Clone)]
-pub struct Modules {
-    /// A pointer to the first module. All modules should be consecutive.
-    pub ptr: *const Module,
-    /// The number of modules. If zero, [ptr](Modules::ptr) should not be trusted!
-    pub modules_num: usize
-}
-
-impl core::ops::Index<usize> for Modules {
-    type Output = Module;
-    fn index(&self, index: usize) -> &Self::Output {
-        unsafe {
-            if index>self.modules_num {
-                panic!("index into Modules too large");
-            }
-            let mut ptr = self.ptr as usize;
-            ptr += index * size_of::<Module>();
-            let ptr = ptr as *const Module;
-            &*ptr
-        }
-    }
-}
-
 /// One memory section provided by a Multiboot2 bootloader.
 #[repr(C)]
 #[repr(align(1))] // may or may not be necessary, but I'm not taking chances
@@ -99,6 +73,23 @@ pub struct MemorySection {
     pub mem_type: u32,
     /// Reserved space. Should be ignored.
     reserved: u32,
+}
+
+/// The raw memory map provided by a Multiboot2 bootloader. This is interpreted
+/// into a [MemoryMap].
+#[repr(C)]
+#[repr(align(1))] // may or may not be necessary, but I'm not taking chances
+pub struct RawMemoryMap {
+    /// The type of the tag.
+    pub tag_type: u32,
+    /// The length of the tag.
+    pub tag_len: u32,
+    /// Size of one entry(one [MemorySection] for Aphrodite)
+    pub entry_size: u32,
+    /// The version of the memory map. Should be disregarded as it's 0.
+    pub entry_version: u32, // currently is 0, future Multiboot2 versions may increment
+    /// The sections. This is the reason that [Clone] can't be implemented for [RawMemoryMap].
+    pub sections: [MemorySection]
 }
 
 /// A full memory map provided by a Multiboot2 bootloader.
@@ -117,6 +108,7 @@ pub struct MemoryMap {
 /// A color descriptor for [ColorInfo::Palette].
 #[repr(C)]
 #[repr(align(1))] // may or may not be necessary, but I'm not taking chances
+#[derive(Clone, Copy)]
 pub struct PaletteColorDescriptor {
     /// The red value
     pub red: u8,
@@ -127,9 +119,9 @@ pub struct PaletteColorDescriptor {
 }
 
 /// Information about color, for use in [FramebufferInfo].
-#[repr(C)]
+#[repr(u8)]
 #[repr(align(1))] // may or may not be necessary, but I'm not taking chances
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum ColorInfo {
     /// The palette for use on the framebuffer.
     Palette {
@@ -154,7 +146,9 @@ pub enum ColorInfo {
         blue_field_position: u8,
         /// See above.
         blue_mask_size: u8,
-    }
+    },
+    /// Text information, no metadata
+    EGAText
 }
 
 /// Information about the framebuffer.
@@ -162,6 +156,10 @@ pub enum ColorInfo {
 #[repr(align(1))] // may or may not be necessary, but I'm not taking chances
 #[derive(Clone)]
 pub struct FramebufferInfo {
+    /// The raw pointer to the string.
+    pub ptr: *const u8,
+    /// The length of the string, excluding the null byte(\0) at the end.
+    pub len: usize,
     /// A pointer to the framebuffer.
     pub address: *mut u8,
     /// The pitch of the framebuffer (i.e. the number of bytes in each row).
@@ -176,8 +174,9 @@ pub struct FramebufferInfo {
     pub fb_type: u8,
     /// Reserved space. Ignore.
     reserved: u8,
-    /// Color info. None if [fb_type](FramebufferInfo::fb_type) is 2.
-    pub color_info: Option<ColorInfo>
+
+    // Color info after this; we need separate structs for each colorinfo and
+    // we have to understand the format the bootloader gives us.
 }
 
 /// Boot info collected from provided [Tag]s.
@@ -199,8 +198,8 @@ pub struct BootInfo {
     /// See https://github.com/AverseABFun/aphrodite/wiki/Plan#bootloader (remember to update link later!) for the format.
     pub cmdline: Option<CString>,
 
-    /// All modules provided by the bootloader.
-    pub modules: Option<Modules>,
+    // Due to the way modules work, it's not easily possible to make a struct that contains all the modules.
+    // Therefore, they are loaded on the fly.
 
     // Multiboot2 bootloaders may provide us with ELF symbols, but I'm feeling lazy and right now the kernel is a 
     // flat binary, so I don't care. Sorry if you are affected by this.
@@ -218,6 +217,8 @@ pub struct BootInfo {
 
     /// Provides information on the framebuffer.
     pub framebuffer_info: Option<FramebufferInfo>,
+    /// Color info, stored separately from [FramebufferInfo] because rust
+    pub color_info: Option<ColorInfo>,
 
     // Even though SMBIOS is documented for Multiboot2, we're not using it and will instead search for it ourselves.
     // This is because right now I cannot figure out what format it provides the SMBIOS table in.

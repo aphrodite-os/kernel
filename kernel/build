@@ -1,4 +1,10 @@
 #!/bin/bash
 
-RUSTFLAGS='-Clink-arg=--script=link.x' cargo build --target i686-unknown-none.json --release -Zbuild-std
-cp target/i686-unknown-none/release/kernel kernel.flat
+RUSTFLAGS='-Clink-arg=--script=link.x' cargo build --target i686-unknown-none.json --release -Zbuild-std --bin entrypoint
+# build the kernel's entrypoint
+
+cp target/i686-unknown-none/release/entrypoint kernel.flat
+# copy it out
+
+/home/arthur/aphrodite/patcher/target/release/patcher
+# run the custom patching program to add the multiboot2 header

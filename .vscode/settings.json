@@ -1,0 +1,8 @@
+{
+    "rust-analyzer.cargo.allTargets": false,
+    "rust-analyzer.check.allTargets": false,
+    "rust-analyzer.linkedProjects": [
+        "kernel/Cargo.toml",
+        "patcher/Cargo.toml"
+    ]
+}

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+paste = "1.0.15"
 
 [profile.release]
 opt-level = "z"
@@ -19,3 +20,7 @@ path = "src/internal/arch/x86/entry.rs"
 [lib]
 name = "aphrodite"
 path = "src/include/mod.rs"
+
+[[test]]
+name = "test_aphrodite"
+path = "src/include/test.rs"
