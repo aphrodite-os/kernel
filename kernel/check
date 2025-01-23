@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Build the file
+./build
+
+if grub-file --is-x86-multiboot2 kernel.flat; then
+    echo "Multiboot2 header valid" > ./check_results
+else
+    echo "Multiboot2 header INVALID!" > ./check_results
+fi
+
+echo
+
+cat check_results

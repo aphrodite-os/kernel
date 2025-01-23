@@ -1,0 +1,13 @@
+function get_version() {
+    local TEMP_SUFFIX
+    if [[ ! $(git diff-index --quiet HEAD --) ]]; then
+        TEMP_SUFFIX="-out-of-tree"
+    fi
+    SUFFIX="${SUFFIX:-$TEMP_SUFFIX}"
+
+    VERSION="${VERSION:-devel-$(git rev-parse --short HEAD)$SUFFIX}"
+}
+
+function reset_version_vars() {
+    unset TEMP_SUFFIX SUFFIX VERSION
+}
