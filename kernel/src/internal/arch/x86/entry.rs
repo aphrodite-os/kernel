@@ -6,6 +6,16 @@
 
 use core::{arch::asm, ffi::CStr, panic::PanicInfo};
 use aphrodite::multiboot2::{BootInfo, CString, ColorInfo, FramebufferInfo, MemoryMap, PaletteColorDescriptor, RawMemoryMap, RootTag, Tag};
+use aphrodite::arch::x86::output::*;
+
+#[unsafe(link_section = ".multiboot2")]
+#[unsafe(no_mangle)]
+static MULTIBOOT2_HEADER: [u8; 29] = [
+	0xd6, 0x50, 0x52, 0xe8, 0x00, 0x00, 0x00, 0x00, 
+	0x18, 0x00, 0x00, 0x00, 0x12, 0xaf, 0xad, 0x17, 
+	0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 
+	0xe9, 0x55, 0x00, 0x00, 0x00
+];
 
 // The root tag, provided directly from the multiboot bootloader.
 static mut RT: *const RootTag = core::ptr::null();
@@ -31,10 +41,9 @@ static mut MAGIC: u32 = 0xFFFFFFFF;
 extern "C" fn _start() -> ! {
     unsafe { // Copy values provided by the bootloader out
         asm!(
-            "mov {0:e}, eax", out(reg) MAGIC // Magic number
-        );
-        asm!(
-            "mov {0:e}, ebx", out(reg) O // Bootloader-specific data
+            "mov ebx, ebx", out("ebx") O, // Bootloader-specific data(ebx)
+                            out("eax") MAGIC, // Magic number(eax)
+            options(nomem, nostack, preserves_flags, pure)
         );
     }
     unsafe {
@@ -42,38 +51,66 @@ extern "C" fn _start() -> ! {
             0x36D76289 => { // Multiboot2
                 RT = O as *const RootTag; // This is unsafe rust! We can do whatever we want! *manical laughter*
 
+                sdebugs("Total boot info length: ");
+                soutputb(&aphrodite::u32_as_u8_slice((*RT).total_len));
+                soutputu(b'\n');
+
+                sdebugs("Root tag address is: ");
+                soutputb(&aphrodite::usize_as_u8_slice(O as usize));
+                soutputu(b'\n');
+
+                if (*RT).total_len<16 { // Size of root tag+size of terminating tag. Something's up.
+                    panic!("total length < 16")
+                }
+
+                soutputu(b'\n');
+
                 let mut ptr = O as usize;
                 ptr += size_of::<RootTag>();
 
-                let mut current_tag = ptr as *const Tag;
+                let mut current_tag = core::ptr::read_volatile(ptr as *const Tag);
                 
                 loop {
-                    match (*current_tag).tag_type {
+                    sdebugs("Tag address is: ");
+                    soutputb(&aphrodite::usize_as_u8_slice(ptr));
+                    soutputu(b'\n');
+
+                    sdebugs("Tag type is: ");
+                    soutputb(&aphrodite::u32_as_u8_slice(current_tag.tag_type));
+                    soutputu(b'\n');
+
+                    sdebugs("Tag length is: ");
+                    soutputb(&aphrodite::u32_as_u8_slice(current_tag.tag_len));
+                    soutputu(b'\n');
+
+                    soutputu(b'\n');
+                    
+                    match current_tag.tag_type {
                         0 => { // Ending tag
-                            if (*current_tag).tag_len != 8 { // Unexpected size, something is probably up
+                            if current_tag.tag_len != 8 { // Unexpected size, something is probably up
                                 panic!("size of ending tag != 8");
                             }
                             break
                         },
                         4 => { // Basic memory information
-                            if (*current_tag).tag_len != 16 { // Unexpected size, something is probably up
+                            if current_tag.tag_len != 16 { // Unexpected size, something is probably up
                                 panic!("size of basic memory information tag != 16");
                             }
 
-                            BI.mem_lower = Some(*((current_tag as usize + 8) as *const u32));
-                            BI.mem_upper = Some(*((current_tag as usize + 12) as *const u32));
+                            BI.mem_lower = Some(*((ptr + 8) as *const u32));
+                            BI.mem_upper = Some(*((ptr + 12) as *const u32));
                             // The end result of the above is adding an offset to a pointer and retrieving the value at that pointer
                         },
                         5 => { // BIOS boot device, ignore
-                            if (*current_tag).tag_len != 20 { // Unexpected size, something is probably up
+                            if current_tag.tag_len != 20 { // Unexpected size, something is probably up
                                 panic!("size of bios boot device tag != 20");
                             }
                         },
                         1 => { // Command line
-                            if (*current_tag).tag_len < 8 { // Unexpected size, something is probably up
+                            if current_tag.tag_len < 8 { // Unexpected size, something is probably up
                                 panic!("size of command line tag < 8");
                             }
-                            let cstring = CStr::from_ptr((current_tag as usize + 8) as *const i8);
+                            let cstring = CStr::from_ptr((ptr + 8) as *const i8);
                             // creates a &core::ffi::CStr from the start of the command line...
 
                             let cstring = CString {
@@ -86,11 +123,11 @@ extern "C" fn _start() -> ! {
                             // ...before the BootInfo's commandline is set.
                         },
                         6 => { // Memory map tag
-                            if (*current_tag).tag_len < 16 { // Unexpected size, something is probably up
+                            if current_tag.tag_len < 16 { // Unexpected size, something is probably up
                                 panic!("size of memory map tag < 16");
                             }
                             let rawmemorymap: *const RawMemoryMap = core::ptr::from_raw_parts(
-                                current_tag, ((*current_tag).tag_len / *((current_tag as usize + 8usize) as *const u32)) as usize
+                                ptr as *const u8, (current_tag.tag_len / *((ptr + 8usize) as *const u32)) as usize
                             );
                             // The end result of the above is creating a *const RawMemoryMap that has the same address as current_tag
                             // and has all of the [aphrodite::multiboot2::MemorySection]s for the memory map
@@ -103,10 +140,10 @@ extern "C" fn _start() -> ! {
                             });
                         },
                         2 => { // Bootloader name
-                            if (*current_tag).tag_len < 8 { // Unexpected size, something is probably up
+                            if current_tag.tag_len < 8 { // Unexpected size, something is probably up
                                 panic!("size of command line tag < 8");
                             }
-                            let cstring = CStr::from_ptr((current_tag as usize + 8) as *const i8);
+                            let cstring = CStr::from_ptr((ptr + 8) as *const i8);
                             // creates a &core::ffi::CStr from the start of the bootloader name...
 
                             let cstring = CString {
@@ -119,26 +156,26 @@ extern "C" fn _start() -> ! {
                             // ...before the BootInfo's bootloader_name is set.
                         },
                         8 => { // Framebuffer info
-                            if (*current_tag).tag_len < 40 { // Unexpected size, something is probably up
+                            if current_tag.tag_len < 40 { // Unexpected size, something is probably up
                                 panic!("size of framebuffer info tag < 40");
                             }
-                            let framebufferinfo: *const FramebufferInfo = current_tag as *const FramebufferInfo;
+                            let framebufferinfo: *const FramebufferInfo = ptr as *const FramebufferInfo;
                             let colorinfo: ColorInfo;
                             match (*framebufferinfo).fb_type {
                                 0 => { // Indexed
                                     colorinfo = ColorInfo::Palette {
-                                        num_colors: *((current_tag as usize + 40) as *const u32),
-                                        palette: (current_tag as usize + 44) as *const PaletteColorDescriptor
+                                        num_colors: *((ptr + 40) as *const u32),
+                                        palette: (ptr + 44) as *const PaletteColorDescriptor
                                     };
                                 },
                                 1 => { // RGB
                                     colorinfo = ColorInfo::RGBColor {
-                                        red_field_position: *((current_tag as usize + 40) as *const u8),
-                                        red_mask_size: *((current_tag as usize + 41) as *const u8),
-                                        green_field_position: *((current_tag as usize + 42) as *const u8),
-                                        green_mask_size: *((current_tag as usize + 43) as *const u8),
-                                        blue_field_position: *((current_tag as usize + 44) as *const u8),
-                                        blue_mask_size: *((current_tag as usize + 45) as *const u8)
+                                        red_field_position: *((ptr + 40) as *const u8),
+                                        red_mask_size: *((ptr + 41) as *const u8),
+                                        green_field_position: *((ptr + 42) as *const u8),
+                                        green_mask_size: *((ptr + 43) as *const u8),
+                                        blue_field_position: *((ptr + 44) as *const u8),
+                                        blue_mask_size: *((ptr + 45) as *const u8)
                                     }
                                 },
                                 2 => { // EGA Text
@@ -151,11 +188,15 @@ extern "C" fn _start() -> ! {
                             BI.framebuffer_info = Some((*framebufferinfo).clone());
                             BI.color_info = Some(colorinfo);
                         },
+                        4294967295 => { // oh no, THIS bug happened
+                            panic!("your code is fucked up")
+                        },
                         _ => { // Unknown/unimplemented tag type, ignore
                             // TODO: Add info message
                         }
                     }
-                    current_tag = (current_tag as usize + (*current_tag).tag_len as usize) as *const Tag;
+                    ptr = ptr + current_tag.tag_len as usize;
+                    current_tag = core::ptr::read_volatile(ptr as *const Tag);
                 }
             },
             _ => { // Unknown bootloader, panic
@@ -172,7 +213,7 @@ extern "C" fn _start() -> ! {
 fn handle_panic(info: &PanicInfo) -> ! {
     let message = info.message().as_str().unwrap_or("");
     if message != "" {
-        aphrodite::arch::x86::output::sfatals(message);
+        sfatals(message);
         aphrodite::arch::x86::ports::outb(aphrodite::arch::x86::DEBUG_PORT, b'\n');
     }
     unsafe {

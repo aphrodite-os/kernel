@@ -1,0 +1,4 @@
+#!/bin/bash
+
+cd ../emulation
+bochs -q

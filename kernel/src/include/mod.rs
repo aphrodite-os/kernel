@@ -4,6 +4,7 @@
 #![feature(ptr_metadata)]
 
 mod constants;
+mod util;
 pub mod multiboot2;
 pub mod arch;
 mod errors;
@@ -12,3 +13,4 @@ mod errors;
 pub use constants::*;
 
 pub use errors::*;
+pub use util::*;

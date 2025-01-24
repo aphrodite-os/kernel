@@ -18,6 +18,11 @@ macro_rules! message_funcs {
                 ports::outbs(super::DEBUG_PORT, $prefix.as_bytes());
                 ports::outbs(super::DEBUG_PORT, s);
             }
+            /// Outputs a(n) $func_name message u8 to the debug serial port.
+            pub fn [< s $func_name u >](s: u8) {
+                ports::outbs(super::DEBUG_PORT, $prefix.as_bytes());
+                ports::outb(super::DEBUG_PORT, s);
+            }
         }
     }
 }
@@ -27,4 +32,5 @@ message_funcs!(info, "[INFO] ");
 message_funcs!(warning, "[WARN] ");
 message_funcs!(error, "[ERROR] ");
 message_funcs!(fatal, "[FATAL] ");
+message_funcs!(output, "");
 

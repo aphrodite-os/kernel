@@ -7,18 +7,13 @@ if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
 
 get_version
 
-cd ../patcher
-cargo build --release
 cd ../kernel
 
-RUSTFLAGS='-Clink-arg=--script=link.x' cargo build --target i686-unknown-none.json --release -Zbuild-std --bin entrypoint
+cargo build --target i686-unknown-none.json --release -Zbuild-std --bin entrypoint
 # build the kernel's entrypoint
 
 cp target/i686-unknown-none/release/entrypoint kernel.flat
 # copy it out
-
-../patcher/target/release/patcher
-# run the custom patching program to add the multiboot2 header
 
 rm -rf grub
 
@@ -27,3 +22,6 @@ cp -r ./grub_template ./grub
 cp kernel.flat ./grub/boot/aphrodite.kernel
 
 sed -i "s@%{VERSION}@$VERSION@g" ./grub/boot/grub/grub.cfg
+
+grub-mkrescue -o aphrodite-grub.iso grub
+cp aphrodite-grub.iso aphrodite.iso
