@@ -26,7 +26,7 @@ pub fn inb(port: u16) -> u8 {
     let out;
     unsafe {
         asm!(
-            "in {}, {1:x}", out(reg_byte) out, in(reg) port
+            "in al, dx", out("al") out, in("dx") port
         )
     }
     out

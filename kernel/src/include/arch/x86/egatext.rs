@@ -82,4 +82,29 @@ impl FramebufferInfo {
         }
         Ok((x, y))
     }
+
+    /// Disables the cursor.
+    pub fn disable_cursor(self) {
+        super::ports::outb(0x3D4, 0x0A);
+        super::ports::outb(0x3D5, 0x20);
+    }
+
+    /// Enables the cursor.
+    pub fn enable_cursor(self, start_scan: u8, end_scan: u8) {
+        super::ports::outb(0x3D4, 0x0A);
+        super::ports::outb(0x3D5, (super::ports::inb(0x3D5) & 0xC0) | start_scan);
+
+        super::ports::outb(0x3D4, 0x0B);
+        super::ports::outb(0x3D5, (super::ports::inb(0x3D5) & 0xE0) | end_scan);
+    }
+
+    /// Sets the cursor's location.
+    pub fn set_cursor_location(self, pos: (u32, u32)) {
+        let addr = pos.1 * self.width + pos.0;
+
+        super::ports::outb(0x3D4, 0x0F);
+        super::ports::outb(0x3D5, (addr & 0xFF) as u8);
+        super::ports::outb(0x3D4, 0x0E);
+        super::ports::outb(0x3D5, ((addr >> 8) & 0xFF) as u8);
+    }
 }

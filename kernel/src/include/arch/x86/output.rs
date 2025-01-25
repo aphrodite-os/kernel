@@ -123,6 +123,7 @@ macro_rules! message_funcs {
                     OUTPUT_TERM_POSITION = info.write_str(OUTPUT_TERM_POSITION, $prefix, WHITE_ON_BLACK)?;
                     OUTPUT_TERM_POSITION = info.write_str(OUTPUT_TERM_POSITION, s, WHITE_ON_BLACK)?;
                     OUTPUT_TERM_POSITION.1 += 1;
+                    OUTPUT_TERM_POSITION.0 = 0;
                 }
                 Ok(())
             }
@@ -147,6 +148,7 @@ macro_rules! message_funcs {
                     OUTPUT_TERM_POSITION = info.write_str(OUTPUT_TERM_POSITION, $prefix, WHITE_ON_BLACK)?;
                     OUTPUT_TERM_POSITION = info.write_bytes(OUTPUT_TERM_POSITION, s, WHITE_ON_BLACK)?;
                     OUTPUT_TERM_POSITION.1 += 1;
+                    OUTPUT_TERM_POSITION.0 = 0;
                 }
                 Ok(())
             }
@@ -188,6 +190,7 @@ macro_rules! message_funcs {
                     }
                     OUTPUT_TERM_POSITION = info.write_str(OUTPUT_TERM_POSITION, s, WHITE_ON_BLACK)?;
                     OUTPUT_TERM_POSITION.1 += 1;
+                    OUTPUT_TERM_POSITION.0 = 0;
                 }
                 Ok(())
             }
@@ -210,6 +213,7 @@ macro_rules! message_funcs {
                     }
                     OUTPUT_TERM_POSITION = info.write_bytes(OUTPUT_TERM_POSITION, s, WHITE_ON_BLACK)?;
                     OUTPUT_TERM_POSITION.1 += 1;
+                    OUTPUT_TERM_POSITION.0 = 0;
                 }
                 Ok(())
             }

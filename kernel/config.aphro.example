@@ -1,5 +1,5 @@
-# config.aphro for aphrodite devel-bc19d1a-out-of-tree
-CFG_VERSION=devel-bc19d1a-out-of-tree
+# config.aphro for aphrodite devel-2df6e24-out-of-tree
+CFG_VERSION=devel-2df6e24-out-of-tree
 CONT_WITH_DIFFERENT_VERSION=false
 
 # Begin metadata

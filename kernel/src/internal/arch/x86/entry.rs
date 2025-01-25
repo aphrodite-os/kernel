@@ -278,10 +278,11 @@ extern "C" fn _start() -> ! {
                         bpp: framebuffer_info.bpp
                     };
                     ega.clear_screen(BLACK_ON_BLACK);
+                    ega.enable_cursor(14, 15);
+                    ega.set_cursor_location((0, 0));
                     tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
-                    for _ in 0..100000000 {
-                        asm!("nop");
-                    }
+                    tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
+                    tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
                 },
                 _ => {
                     unreachable!();
