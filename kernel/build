@@ -7,6 +7,10 @@ if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
 
 get_version
 
+cp config.aphro config.aphro.tmp
+
+export $(grep -Ev '^#' config.aphro.tmp | xargs)
+
 cd ../kernel
 
 cargo build --target i686-unknown-none.json --release -Zbuild-std --bin entrypoint
@@ -15,13 +19,17 @@ cargo build --target i686-unknown-none.json --release -Zbuild-std --bin entrypoi
 cp target/i686-unknown-none/release/entrypoint kernel.flat
 # copy it out
 
-rm -rf grub
+rm -rf grub aphrodite.iso aphrodite-grub.iso
 
-cp -r ./grub_template ./grub
+if [[ $CONFIG_BUILD_GRUB = "true" ]]; then
+    cp -r ./grub_template ./grub
 
-cp kernel.flat ./grub/boot/aphrodite.kernel
+    cp kernel.flat ./grub/boot/aphrodite.kernel
 
-sed -i "s@%{VERSION}@$VERSION@g" ./grub/boot/grub/grub.cfg
+    sed -i "s@%{VERSION}@$VERSION@g" ./grub/boot/grub/grub.cfg
 
-grub-mkrescue -o aphrodite-grub.iso grub
-cp aphrodite-grub.iso aphrodite.iso
+    grub-mkrescue -o aphrodite-grub.iso grub
+    cp aphrodite-grub.iso aphrodite.iso
+fi
+
+reset_version_vars

@@ -15,6 +15,13 @@ pub fn interrupts_enabled() -> bool {
     (flags & (1 << 9)) == 0
 }
 
+/// Disables interrupts.
+pub fn disable_interrupts() {
+    unsafe {
+        asm!("cli")
+    }
+}
+
 /// Disables interrupts and returns the value of them.
 pub fn pop_irq() -> u32 {
     let flags: u32;

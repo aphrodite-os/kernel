@@ -1,0 +1,23 @@
+# config.aphro for aphrodite devel-83f6c5c-out-of-tree
+
+# Begin metadata
+
+# Set VERSION=generate to attempt to autogenerate a version based on git information
+VERSION=generate
+# SUFFIX is unset
+
+# End metadata
+
+# Begin configs
+CONFIG_DISABLE_MULTIBOOT2_SUPPORT=false
+CONFIG_PREUSER_HALT_ON_PANIC=false
+CONFIG_PREUSER_SPIN_ON_PANIC=true
+
+CONFIG_PREUSER_OUTPUT_DEBUG=true
+CONFIG_PREUSER_OUTPUT_INFO=true
+CONFIG_PREUSER_OUTPUT_WARN=true
+CONFIG_PREUSER_OUTPUT_ERROR=true
+CONFIG_PREUSER_OUTPUT_FATAL=true
+
+CONFIG_BUILD_GRUB=true
+# End configs

@@ -24,3 +24,10 @@ Cargo.lock
 kernel/grub/
 aphrodite-grub.iso
 aphrodite.iso
+
+# Generated files
+kernel.flat
+config.aphro.tmp
+
+# Per-developer files
+config.aphro

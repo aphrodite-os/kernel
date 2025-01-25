@@ -2,12 +2,14 @@
 #![no_std]
 #![no_main]
 #![warn(missing_docs)]
+#![allow(unexpected_cfgs)]
 #![feature(ptr_metadata)]
 
 use core::{arch::asm, ffi::CStr, panic::PanicInfo};
 use aphrodite::multiboot2::{BootInfo, CString, ColorInfo, FramebufferInfo, MemoryMap, PaletteColorDescriptor, RawMemoryMap, RootTag, Tag};
 use aphrodite::arch::x86::output::*;
 
+#[cfg(not(CONFIG_DISABLE_MULTIBOOT2_SUPPORT))]
 #[unsafe(link_section = ".multiboot2")]
 #[unsafe(no_mangle)]
 static MULTIBOOT2_HEADER: [u8; 29] = [
@@ -17,7 +19,7 @@ static MULTIBOOT2_HEADER: [u8; 29] = [
 	0xe9, 0x55, 0x00, 0x00, 0x00
 ];
 
-// The root tag, provided directly from the multiboot bootloader.
+// The root tag, provided directly from the multiboot2 bootloader.
 static mut RT: *const RootTag = core::ptr::null();
 // The boot info struct, created from all of the tags.
 static mut BI: BootInfo = BootInfo {
@@ -40,30 +42,36 @@ static mut MAGIC: u32 = 0xFFFFFFFF;
 #[unsafe(no_mangle)]
 extern "C" fn _start() -> ! {
     unsafe { // Copy values provided by the bootloader out
+
+        // Aphrodite bootloaders pass values in eax and ebx, however rust doesn't know that it can't overwrite those.
+        // we force using ebx and eax as the output of an empty assembly block to let it know.
         asm!(
-            "mov ebx, ebx", out("ebx") O, // Bootloader-specific data(ebx)
-                            out("eax") MAGIC, // Magic number(eax)
+            "", out("ebx") O, // Bootloader-specific data(ebx)
+                out("eax") MAGIC, // Magic number(eax)
             options(nomem, nostack, preserves_flags, pure)
         );
     }
     unsafe {
         match MAGIC {
+            #[cfg(not(CONFIG_DISABLE_MULTIBOOT2_SUPPORT))]
             0x36D76289 => { // Multiboot2
                 RT = O as *const RootTag; // This is unsafe rust! We can do whatever we want! *manical laughter*
 
-                sdebugs("Total boot info length: ");
-                soutputb(&aphrodite::u32_as_u8_slice((*RT).total_len));
-                soutputu(b'\n');
+                sdebugs("Total boot info length is ");
+                sdebugbnp(&aphrodite::u32_as_u8_slice((*RT).total_len));
+                sdebugunp(b'\n');
 
-                sdebugs("Root tag address is: ");
-                soutputb(&aphrodite::usize_as_u8_slice(O as usize));
-                soutputu(b'\n');
+                sdebugs("Root tag address is ");
+                sdebugbnp(&aphrodite::usize_as_u8_slice(O as usize));
+                sdebugunp(b'\n');
 
                 if (*RT).total_len<16 { // Size of root tag+size of terminating tag. Something's up.
                     panic!("total length < 16")
                 }
 
-                soutputu(b'\n');
+                let end_addr = O as usize+(*RT).total_len as usize;
+
+                sdebugunp(b'\n');
 
                 let mut ptr = O as usize;
                 ptr += size_of::<RootTag>();
@@ -71,19 +79,14 @@ extern "C" fn _start() -> ! {
                 let mut current_tag = core::ptr::read_volatile(ptr as *const Tag);
                 
                 loop {
-                    sdebugs("Tag address is: ");
-                    soutputb(&aphrodite::usize_as_u8_slice(ptr));
-                    soutputu(b'\n');
+                    sdebugs("Tag address is ");
+                    sdebugbnpln(&aphrodite::usize_as_u8_slice(ptr));
 
-                    sdebugs("Tag type is: ");
-                    soutputb(&aphrodite::u32_as_u8_slice(current_tag.tag_type));
-                    soutputu(b'\n');
+                    sdebugs("Tag type is ");
+                    sdebugbnpln(&aphrodite::u32_as_u8_slice(current_tag.tag_type));
 
-                    sdebugs("Tag length is: ");
-                    soutputb(&aphrodite::u32_as_u8_slice(current_tag.tag_len));
-                    soutputu(b'\n');
-
-                    soutputu(b'\n');
+                    sdebugs("Tag length is ");
+                    sdebugbnpln(&aphrodite::u32_as_u8_slice(current_tag.tag_len));
                     
                     match current_tag.tag_type {
                         0 => { // Ending tag
@@ -188,14 +191,16 @@ extern "C" fn _start() -> ! {
                             BI.framebuffer_info = Some((*framebufferinfo).clone());
                             BI.color_info = Some(colorinfo);
                         },
-                        4294967295 => { // oh no, THIS bug happened
-                            panic!("your code is fucked up")
-                        },
                         _ => { // Unknown/unimplemented tag type, ignore
-                            // TODO: Add info message
+                            sinfos("Unknown tag type ");
+                            sinfobnpln(&aphrodite::u32_as_u8_slice(current_tag.tag_type));
                         }
                     }
+                    sinfounp(b'\n');
                     ptr = ptr + current_tag.tag_len as usize;
+                    if ptr>end_addr {
+                        panic!("current tag length would put pointer out-of-bounds")
+                    }
                     current_tag = core::ptr::read_volatile(ptr as *const Tag);
                 }
             },
@@ -210,13 +215,28 @@ extern "C" fn _start() -> ! {
 
 #[unsafe(link_section = ".panic")]
 #[panic_handler]
-fn handle_panic(info: &PanicInfo) -> ! {
+#[cfg(not(CONFIG_PREUSER_HALT_ON_PANIC = "false"))]
+fn halt_on_panic(info: &PanicInfo) -> ! {
     let message = info.message().as_str().unwrap_or("");
     if message != "" {
         sfatals(message);
         aphrodite::arch::x86::ports::outb(aphrodite::arch::x86::DEBUG_PORT, b'\n');
     }
+    aphrodite::arch::x86::interrupts::disable_interrupts();
     unsafe {
         asm!("hlt", options(noreturn));
     }
+}
+
+#[unsafe(link_section = ".panic")]
+#[panic_handler]
+#[cfg(all(CONFIG_PREUSER_SPIN_ON_PANIC = "true", CONFIG_PREUSER_HALT_ON_PANIC = "false"))]
+fn spin_on_panic(info: &PanicInfo) -> ! {
+    let message = info.message().as_str().unwrap_or("");
+    if message != "" {
+        sfatals(message);
+        aphrodite::arch::x86::ports::outb(aphrodite::arch::x86::DEBUG_PORT, b'\n');
+    }
+    aphrodite::arch::x86::interrupts::disable_interrupts();
+    loop {}
 }
