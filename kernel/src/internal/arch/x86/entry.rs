@@ -10,6 +10,8 @@
 use core::{arch::asm, ffi::CStr, panic::PanicInfo};
 use aphrodite::multiboot2::{BootInfo, CString, ColorInfo, FramebufferInfo, MemoryMap, PaletteColorDescriptor, RawMemoryMap, RootTag, Tag};
 use aphrodite::arch::x86::output::*;
+use aphrodite::arch::x86::egatext as egatext;
+use egatext::*;
 
 #[cfg(not(CONFIG_DISABLE_MULTIBOOT2_SUPPORT))]
 #[unsafe(link_section = ".multiboot2")]
@@ -161,33 +163,33 @@ extern "C" fn _start() -> ! {
                             // ...before the BootInfo's bootloader_name is set.
                         },
                         8 => { // Framebuffer info
-                            if current_tag.tag_len < 31 { // Unexpected size, something is probably up
-                                panic!("size of framebuffer info tag < 31");
+                            if current_tag.tag_len < 32 { // Unexpected size, something is probably up
+                                panic!("size of framebuffer info tag < 32");
                             }
-                            let framebufferinfo: *const FramebufferInfo = ptr as *const FramebufferInfo;
+                            let framebufferinfo: *const FramebufferInfo = (ptr as usize + size_of::<Tag>()) as *const FramebufferInfo;
                             let colorinfo: ColorInfo;
                             match (*framebufferinfo).fb_type {
                                 0 => { // Indexed
                                     colorinfo = ColorInfo::Palette {
-                                        num_colors: *((ptr + 40) as *const u32),
-                                        palette: (ptr + 44) as *const PaletteColorDescriptor
+                                        num_colors: *((ptr + 32) as *const u32),
+                                        palette: (ptr + 36) as *const PaletteColorDescriptor
                                     };
                                 },
                                 1 => { // RGB
                                     colorinfo = ColorInfo::RGBColor {
-                                        red_field_position: *((ptr + 40) as *const u8),
-                                        red_mask_size: *((ptr + 41) as *const u8),
-                                        green_field_position: *((ptr + 42) as *const u8),
-                                        green_mask_size: *((ptr + 43) as *const u8),
-                                        blue_field_position: *((ptr + 44) as *const u8),
-                                        blue_mask_size: *((ptr + 45) as *const u8)
+                                        red_field_position: *((ptr + 32) as *const u8),
+                                        red_mask_size: *((ptr + 33) as *const u8),
+                                        green_field_position: *((ptr + 34) as *const u8),
+                                        green_mask_size: *((ptr + 35) as *const u8),
+                                        blue_field_position: *((ptr + 36) as *const u8),
+                                        blue_mask_size: *((ptr + 37) as *const u8)
                                     }
                                 },
                                 2 => { // EGA Text
                                     colorinfo = ColorInfo::EGAText;
                                 },
                                 _ => {
-                                    unreachable!();
+                                    panic!("unknown color info type")
                                 }
                             }
                             BI.framebuffer_info = Some((*framebufferinfo).clone());
@@ -233,6 +235,8 @@ extern "C" fn _start() -> ! {
     unsafe {
         if BI.framebuffer_info.clone().is_some() {
             let framebuffer_info = BI.framebuffer_info.clone().unwrap();
+            let color_info = BI.color_info.clone().unwrap();
+
             sdebugs("Framebuffer width: ");
             sdebugbnpln(&aphrodite::u32_as_u8_slice(framebuffer_info.width));
             sdebugs("Framebuffer height: ");
@@ -244,9 +248,40 @@ extern "C" fn _start() -> ! {
             sdebugs("Framebuffer bpp: ");
             sdebugbnpln(&aphrodite::u8_as_u8_slice(framebuffer_info.bpp));
             sdebugs("Framebuffer type: ");
-            sdebugbnpln(&aphrodite::u8_as_u8_slice(framebuffer_info.fb_type));
-            sdebugs("Framebuffer length: ");
-            sdebugbnpln(&aphrodite::usize_as_u8_slice(framebuffer_info.len));
+            sdebugbnp(&aphrodite::u8_as_u8_slice(framebuffer_info.fb_type));
+
+            match framebuffer_info.fb_type {
+                0 => { // Indexed
+                    sdebugsnpln("(Indexed)");
+                    let ColorInfo::Palette{num_colors, palette: _} = color_info else { unreachable!() };
+                    sdebugs("Number of palette colors: ");
+                    sdebugbnpln(&aphrodite::u32_as_u8_slice(num_colors));
+                },
+                1 => { // RGB
+                    sdebugsnpln("(RGB)");
+                },
+                2 => { // EGA Text
+                    sdebugsnpln("(EGA Text)");
+                    sdebugsln("Attempting to output to screen(will then loop for 100000000 cycles)...");
+
+                    let ega = egatext::FramebufferInfo {
+                        address: framebuffer_info.address,
+                        pitch: framebuffer_info.pitch,
+                        width: framebuffer_info.width,
+                        height: framebuffer_info.height,
+                        bpp: framebuffer_info.bpp
+                    };
+                    ega.clear_screen(BLACK_ON_BLACK);
+                    ega.write_str((0, 0), "Test", WHITE_ON_BLACK).unwrap();
+
+                    for _ in 0..100000000 {
+                        asm!("nop")
+                    }
+                },
+                _ => {
+                    unreachable!();
+                }
+            }
         }
     }
 

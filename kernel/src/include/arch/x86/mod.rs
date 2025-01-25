@@ -6,6 +6,7 @@ use core::arch::asm;
 pub mod interrupts;
 pub mod ports;
 pub mod output;
+pub mod egatext;
 
 mod constants;
 

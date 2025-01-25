@@ -6,6 +6,13 @@ pub struct Error<'a> {
     code: i16
 }
 
+impl<'a> Error<'a> {
+    /// Creates a new error.
+    pub fn new(message: &'a str, code: i16) -> Self {
+        Error { message, code }
+    }
+}
+
 impl core::fmt::Debug for Error<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(core::str::from_utf8(&crate::i16_as_u8_slice(self.code)).unwrap())?;

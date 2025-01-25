@@ -26,7 +26,6 @@ impl core::ops::Index<usize> for CString {
 
 /// Used for Multiboot2 tags. This shouldn't be used after a [BootInfo] struct has been initalized, but it still can be used.
 #[repr(C)]
-#[repr(align(1))] // may or may not be necessary, but I'm not taking chances
 #[derive(Clone)]
 pub struct Tag {
     /// The type of the tag.
@@ -37,7 +36,6 @@ pub struct Tag {
 
 /// The root tag. The official Multiboot2 name is literally the "fixed part" of the tags, so I made a better name.
 #[repr(C)]
-#[repr(align(1))] // may or may not be necessary, but I'm not taking chances
 #[derive(Clone)]
 pub struct RootTag {
     /// The total length between the root tag and the terminating tag.
@@ -61,7 +59,6 @@ pub struct Module {
 
 /// One memory section provided by a Multiboot2 bootloader.
 #[repr(C)]
-#[repr(align(1))] // may or may not be necessary, but I'm not taking chances
 #[derive(Clone)]
 pub struct MemorySection {
     /// The base address of the section.
@@ -78,7 +75,6 @@ pub struct MemorySection {
 /// The raw memory map provided by a Multiboot2 bootloader. This is interpreted
 /// into a [MemoryMap].
 #[repr(C)]
-#[repr(align(1))] // may or may not be necessary, but I'm not taking chances
 pub struct RawMemoryMap {
     /// The type of the tag.
     pub tag_type: u32,
@@ -107,7 +103,6 @@ pub struct MemoryMap {
 
 /// A color descriptor for [ColorInfo::Palette].
 #[repr(C)]
-#[repr(align(1))] // may or may not be necessary, but I'm not taking chances
 #[derive(Clone, Copy)]
 pub struct PaletteColorDescriptor {
     /// The red value
@@ -120,7 +115,6 @@ pub struct PaletteColorDescriptor {
 
 /// Information about color, for use in [FramebufferInfo].
 #[repr(u8)]
-#[repr(align(1))] // may or may not be necessary, but I'm not taking chances
 #[derive(Clone, Copy)]
 pub enum ColorInfo {
     /// The palette for use on the framebuffer.
@@ -153,15 +147,10 @@ pub enum ColorInfo {
 
 /// Information about the framebuffer.
 #[repr(C)]
-#[repr(align(1))] // may or may not be necessary, but I'm not taking chances
 #[derive(Clone)]
 pub struct FramebufferInfo {
-    /// The raw pointer to the string.
-    pub ptr: *const u8,
-    /// The length of the string, excluding the null byte(\0) at the end.
-    pub len: usize,
     /// A pointer to the framebuffer.
-    pub address: *mut u8,
+    pub address: u64,
     /// The pitch of the framebuffer (i.e. the number of bytes in each row).
     pub pitch: u32,
     /// The width of the framebuffer.
@@ -175,7 +164,7 @@ pub struct FramebufferInfo {
     /// Reserved space. Ignore.
     reserved: u8,
 
-    // Color info after this; we need separate structs for each colorinfo and
+    // Color info after this; we need separate structs for each colorinfo as
     // we have to understand the format the bootloader gives us.
 }
 
