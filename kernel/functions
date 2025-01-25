@@ -1,7 +1,9 @@
 function get_version() {
     local TEMP_SUFFIX
-    if git diff-index HEAD -- 2>&1 > /dev/null
+    if git add . && git diff --quiet && git diff --cached --quiet 
     then
+        echo -n
+    else
         TEMP_SUFFIX="-out-of-tree"
     fi
     SUFFIX="$SUFFIX$TEMP_SUFFIX"
