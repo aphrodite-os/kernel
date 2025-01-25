@@ -256,9 +256,15 @@ extern "C" fn _start() -> ! {
                     let ColorInfo::Palette{num_colors, palette: _} = color_info else { unreachable!() };
                     sdebugs("Number of palette colors: ");
                     sdebugbnpln(&aphrodite::u32_as_u8_slice(num_colors));
+                    
+                    sfatalsln("Halting CPU; Indexed color unimplemented");
+                    asm!("hlt", options(noreturn));
                 },
                 1 => { // RGB
                     sdebugsnpln("(RGB)");
+
+                    sfatalsln("Halting CPU; RGB color unimplemented");
+                    asm!("hlt", options(noreturn));
                 },
                 2 => { // EGA Text
                     sdebugsnpln("(EGA Text)");
@@ -272,10 +278,9 @@ extern "C" fn _start() -> ! {
                         bpp: framebuffer_info.bpp
                     };
                     ega.clear_screen(BLACK_ON_BLACK);
-                    ega.write_str((0, 0), "Test", WHITE_ON_BLACK).unwrap();
-
+                    tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
                     for _ in 0..100000000 {
-                        asm!("nop")
+                        asm!("nop");
                     }
                 },
                 _ => {

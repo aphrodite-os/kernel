@@ -56,16 +56,30 @@ impl FramebufferInfo {
     }
 
     /// Writes a &str to the screen.
-    pub fn write_str(self, pos: (u32, u32), str: &str, color: u8) -> Result<(), crate::Error<'static>> {
+    pub fn write_str(self, pos: (u32, u32), str: &str, color: u8) -> Result<(u32, u32), crate::Error<'static>> {
         let (mut x, mut y) = pos;
         for char in str.as_bytes() {
             self.write_char((x, y), *char, color)?;
             x += 1;
-            if x>self.width {
+            while x>self.width {
                 x -= self.width;
                 y += 1;
             }
         }
-        Ok(())
+        Ok((x, y))
+    }
+
+    /// Writes a &\[u8] to the screen.
+    pub fn write_bytes(self, pos: (u32, u32), str: &[u8], color: u8) -> Result<(u32, u32), crate::Error<'static>> {
+        let (mut x, mut y) = pos;
+        for char in str {
+            self.write_char((x, y), *char, color)?;
+            x += 1;
+            while x>self.width {
+                x -= self.width;
+                y += 1;
+            }
+        }
+        Ok((x, y))
     }
 }
