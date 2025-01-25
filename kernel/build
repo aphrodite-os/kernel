@@ -1,35 +1,49 @@
 #!/bin/bash
 
-DIR="${BASH_SOURCE%/*}"
-if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+(
+    set -e
 
-. "$DIR/functions"
+    DIR="${BASH_SOURCE%/*}"
+    if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
 
-get_version
+    . "$DIR/functions"
 
-cp config.aphro config.aphro.tmp
+    rm config.aphro.tmp
+    cp config.aphro config.aphro.tmp
 
-export $(grep -Ev '^#' config.aphro.tmp | xargs)
+    export $(grep -Ev '^#' config.aphro.tmp | xargs)
 
-cd ../kernel
+    get_version
 
-cargo build --target i686-unknown-none.json --release -Zbuild-std --bin entrypoint
-# build the kernel's entrypoint
+    if [[ "$CFG_VERSION" != "$VERSION" ]]; then
+        echo -n "[WARN] Configuration version \"$CFG_VERSION\" is different then actual version \"$VERSION\""
+        if [[ "$CONT_WITH_DIFFERENT_VERSION" != "true" ]]; then
+            echo "; not continuing"
+            exit 1
+        fi
+        echo
+    fi
 
-cp target/i686-unknown-none/release/entrypoint kernel.flat
-# copy it out
+    cd ../kernel
 
-rm -rf grub aphrodite.iso aphrodite-grub.iso
+    cargo build --target i686-unknown-none.json --release -Zbuild-std --bin entrypoint
+    # build the kernel's entrypoint
 
-if [[ $CONFIG_BUILD_GRUB = "true" ]]; then
-    cp -r ./grub_template ./grub
+    cp target/i686-unknown-none/release/entrypoint kernel.flat
+    # copy it out
 
-    cp kernel.flat ./grub/boot/aphrodite.kernel
+    rm -rf grub aphrodite.iso aphrodite-grub.iso
 
-    sed -i "s@%{VERSION}@$VERSION@g" ./grub/boot/grub/grub.cfg
+    if [[ $CONFIG_BUILD_GRUB = "true" ]]; then
+        cp -r ./grub_template ./grub
 
-    grub-mkrescue -o aphrodite-grub.iso grub
-    cp aphrodite-grub.iso aphrodite.iso
-fi
+        cp kernel.flat ./grub/boot/aphrodite.kernel
 
-reset_version_vars
+        sed -i "s@%{VERSION}@$VERSION@g" ./grub/boot/grub/grub.cfg
+
+        grub-mkrescue -o aphrodite-grub.iso grub
+        cp aphrodite-grub.iso aphrodite.iso
+    fi
+
+    reset_version_vars
+)

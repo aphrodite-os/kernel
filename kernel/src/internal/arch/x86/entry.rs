@@ -3,7 +3,9 @@
 #![no_main]
 #![warn(missing_docs)]
 #![allow(unexpected_cfgs)]
+#![allow(static_mut_refs)]
 #![feature(ptr_metadata)]
+#![feature(cfg_match)]
 
 use core::{arch::asm, ffi::CStr, panic::PanicInfo};
 use aphrodite::multiboot2::{BootInfo, CString, ColorInfo, FramebufferInfo, MemoryMap, PaletteColorDescriptor, RawMemoryMap, RootTag, Tag};
@@ -159,8 +161,8 @@ extern "C" fn _start() -> ! {
                             // ...before the BootInfo's bootloader_name is set.
                         },
                         8 => { // Framebuffer info
-                            if current_tag.tag_len < 40 { // Unexpected size, something is probably up
-                                panic!("size of framebuffer info tag < 40");
+                            if current_tag.tag_len < 31 { // Unexpected size, something is probably up
+                                panic!("size of framebuffer info tag < 31");
                             }
                             let framebufferinfo: *const FramebufferInfo = ptr as *const FramebufferInfo;
                             let colorinfo: ColorInfo;
@@ -192,14 +194,31 @@ extern "C" fn _start() -> ! {
                             BI.color_info = Some(colorinfo);
                         },
                         _ => { // Unknown/unimplemented tag type, ignore
-                            sinfos("Unknown tag type ");
-                            sinfobnpln(&aphrodite::u32_as_u8_slice(current_tag.tag_type));
+                            swarnings("Unknown tag type ");
+                            swarningbnpln(&aphrodite::u32_as_u8_slice(current_tag.tag_type));
                         }
                     }
                     sinfounp(b'\n');
-                    ptr = ptr + current_tag.tag_len as usize;
+                    ptr = (ptr + current_tag.tag_len as usize + 7) & !7;
                     if ptr>end_addr {
-                        panic!("current tag length would put pointer out-of-bounds")
+                        cfg_match! {
+                            cfg(all(CONFIG_PREUSER_ERROR_ON_INVALID_LENGTH = "true", CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH = "false")) => {
+                                serrorsln("Current tag length would put pointer out-of-bounds; CONFIG_PREUSER_ERROR_ON_INVALID_LENGTH is set, continuing");
+                            }
+                            cfg(all(CONFIG_PREUSER_WARN_ON_INVALID_LENGTH = "true", CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH = "false")) => {
+                                swarningsln("Current tag length would put pointer out-of-bounds; CONFIG_PREUSER_WARN_ON_INVALID_LENGTH is set, continuing");
+                            }
+                        }
+                        cfg_match! {
+                            cfg(not(CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH = "false")) => {
+                                panic!("current tag length would put pointer out-of-bounds")
+                            }
+                            cfg(CONFIG_PREUSER_EXIT_LOOP_ON_INVALID_LENGTH = "true") => {
+                                sinfos("Exiting loop as current tag length would put pointer out-of-bounds ");
+                                sinfosnpln("and CONFIG_PREUSER_EXIT_LOOP_ON_INVALID_LENGTH is set");
+                                break;
+                            }
+                        }
                     }
                     current_tag = core::ptr::read_volatile(ptr as *const Tag);
                 }
@@ -209,8 +228,29 @@ extern "C" fn _start() -> ! {
             }
         }
     }
+    sdebugsln("Bootloader information has been successfully loaded");
+    soutputu(b'\n');
+    unsafe {
+        if BI.framebuffer_info.clone().is_some() {
+            let framebuffer_info = BI.framebuffer_info.clone().unwrap();
+            sdebugs("Framebuffer width: ");
+            sdebugbnpln(&aphrodite::u32_as_u8_slice(framebuffer_info.width));
+            sdebugs("Framebuffer height: ");
+            sdebugbnpln(&aphrodite::u32_as_u8_slice(framebuffer_info.height));
+            sdebugs("Framebuffer pitch: ");
+            sdebugbnpln(&aphrodite::u32_as_u8_slice(framebuffer_info.pitch));
+            sdebugs("Framebuffer address: ");
+            sdebugbnpln(&aphrodite::usize_as_u8_slice(framebuffer_info.address as usize));
+            sdebugs("Framebuffer bpp: ");
+            sdebugbnpln(&aphrodite::u8_as_u8_slice(framebuffer_info.bpp));
+            sdebugs("Framebuffer type: ");
+            sdebugbnpln(&aphrodite::u8_as_u8_slice(framebuffer_info.fb_type));
+            sdebugs("Framebuffer length: ");
+            sdebugbnpln(&aphrodite::usize_as_u8_slice(framebuffer_info.len));
+        }
+    }
 
-    panic!("kernel exited");
+    panic!("kernel unexpectedly exited");
 }
 
 #[unsafe(link_section = ".panic")]

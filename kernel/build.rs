@@ -3,8 +3,14 @@ fn main() {
     
     // Begin checks
     println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_DISABLE_MULTIBOOT2_SUPPORT, values("true", "false", none()))"#);
+
     println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_PREUSER_HALT_ON_PANIC, values("true", "false", none()))"#);
     println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_PREUSER_SPIN_ON_PANIC, values("true", "false", none()))"#);
+
+    println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_PREUSER_EXIT_LOOP_ON_INVALID_LENGTH, values("true", "false", none()))"#);
+    println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH, values("true", "false", none()))"#);
+    println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_PREUSER_WARN_ON_INVALID_LENGTH, values("true", "false", none()))"#);
+    println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_PREUSER_ERROR_ON_INVALID_LENGTH, values("true", "false", none()))"#);
 
     println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_PREUSER_OUTPUT_DEBUG, values("true", "false", none()))"#);
     println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_PREUSER_OUTPUT_INFO, values("true", "false", none()))"#);

@@ -1,8 +1,5 @@
 function get_version() {
     local TEMP_SUFFIX
-    if [[ $VERSION = "generate" ]]; then
-        unset VERSION
-    fi
     if git diff-index HEAD -- 2>&1 > /dev/null
     then
         TEMP_SUFFIX="-out-of-tree"
@@ -10,6 +7,9 @@ function get_version() {
     SUFFIX="$SUFFIX$TEMP_SUFFIX"
 
     VERSION="${VERSION:-devel-$(git rev-parse --short HEAD)$SUFFIX}"
+    if [[ "$VERSION" == "generate" ]]; then
+        VERSION="devel-$(git rev-parse --short HEAD)$SUFFIX"
+    fi
 }
 
 function reset_version_vars() {
