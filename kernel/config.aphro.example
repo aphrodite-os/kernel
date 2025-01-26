@@ -1,5 +1,5 @@
-# config.aphro for aphrodite devel-2df6e24-out-of-tree
-CFG_VERSION=devel-2df6e24-out-of-tree
+# config.aphro for aphrodite devel-6a2a677-out-of-tree
+CFG_VERSION=devel-6a2a677-out-of-tree
 CONT_WITH_DIFFERENT_VERSION=false
 
 # Begin metadata
@@ -14,8 +14,8 @@ VERSION=generate
 CONFIG_DISABLE_MULTIBOOT2_SUPPORT=false
 
 # Panic behavior. When debugging, generally halt on panic is more useful.
-CONFIG_PREUSER_HALT_ON_PANIC=true
-CONFIG_PREUSER_SPIN_ON_PANIC=false
+CONFIG_HALT_ON_PANIC=true
+CONFIG_SPIN_ON_PANIC=false
 
 CONFIG_PREUSER_EXIT_LOOP_ON_INVALID_LENGTH=true
 CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH=false

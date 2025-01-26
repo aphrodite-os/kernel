@@ -72,3 +72,20 @@ pub fn usize_as_u8_slice(mut value: usize) -> [u8; 20] {
     }
     buf
 }
+
+/// Converts an u64 to an [u8; 10].
+pub fn u64_as_u8_slice(mut value: u64) -> [u8; 20] {
+    let mut buf = [0u8; 20];
+    let mut i = 19;
+    if value == 0 {
+        buf[0] = b'0';
+    }
+    while value > 0 {
+        let digit = value%10;
+        let char = b'0' + digit as u8;
+        buf[i] = char;
+        value = value / 10;
+        i -= 1;
+    }
+    buf
+}

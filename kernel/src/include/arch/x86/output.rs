@@ -233,6 +233,79 @@ macro_rules! message_funcs {
                 }
                 Ok(())
             }
+
+
+
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+            /// Outputs a $func_name message &str to the terminal.
+            pub fn [< b $func_name s >](s: &str, info: FramebufferInfo) -> Result<(), crate::Error<'static>> {
+                [< s $func_name s >](s);
+                [< t $func_name s >](s, info)?;
+                Ok(())
+            }
+            /// Outputs a $func_name message &str and a newline to the terminal.
+            pub fn [< b $func_name sln >](s: &str, info: FramebufferInfo) -> Result<(), crate::Error<'static>> {
+                [< s $func_name sln >](s);
+                [< t $func_name sln >](s, info)?;
+                Ok(())
+            }
+
+            /// Outputs a $func_name message &\[u8] to the terminal.
+            pub fn [< b $func_name b >](s: &[u8], info: FramebufferInfo) -> Result<(), crate::Error<'static>> {
+                [< s $func_name b >](s);
+                [< t $func_name b >](s, info)?;
+                Ok(())
+            }
+            /// Outputs a $func_name message &\[u8] and a newline to the terminal.
+            pub fn [< b $func_name bln >](s: &[u8], info: FramebufferInfo) -> Result<(), crate::Error<'static>> {
+                [< s $func_name bln >](s);
+                [< t $func_name bln >](s, info)?;
+                Ok(())
+            }
+
+            /// Outputs a(n) $func_name message u8 to the terminal.
+            pub fn [< b $func_name u >](s: u8, info: FramebufferInfo) -> Result<(), crate::Error<'static>> {
+                [< s $func_name u >](s);
+                [< t $func_name u >](s, info)?;
+                Ok(())
+            }
+
+            ///////////////////////////////////////////////////////////////
+
+            /// Outputs a $func_name message &str to the terminal without a prefix.
+            pub fn [< b $func_name snp >](s: &str, info: FramebufferInfo) -> Result<(), crate::Error<'static>> {
+                [< s $func_name snp >](s);
+                [< t $func_name snp >](s, info)?;
+                Ok(())
+            }
+            /// Outputs a $func_name message &str and a newline to the terminal without a prefix.
+            pub fn [< b $func_name snpln >](s: &str, info: FramebufferInfo) -> Result<(), crate::Error<'static>> {
+                [< s $func_name snpln >](s);
+                [< t $func_name snpln >](s, info)?;
+                Ok(())
+            }
+
+            /// Outputs a $func_name message &\[u8] to the terminal without a prefix.
+            pub fn [< b $func_name bnp >](s: &[u8], info: FramebufferInfo) -> Result<(), crate::Error<'static>> {
+                [< s $func_name bnp >](s);
+                [< t $func_name bnp >](s, info)?;
+                Ok(())
+            }
+            /// Outputs a $func_name message &\[u8] and a newline to the terminal without a prefix.
+            pub fn [< b $func_name bnpln >](s: &[u8], info: FramebufferInfo) -> Result<(), crate::Error<'static>> {
+                [< s $func_name bnpln >](s);
+                [< t $func_name bnpln >](s, info)?;
+                Ok(())
+            }
+
+            /// Outputs a(n) $func_name message u8 to the terminal without a prefix.
+            pub fn [< b $func_name unp >](s: u8, info: FramebufferInfo) -> Result<(), crate::Error<'static>> {
+                [< s $func_name unp >](s);
+                [< t $func_name unp >](s, info)?;
+                Ok(())
+            }
         }
     }
 }
@@ -243,4 +316,11 @@ message_funcs!(warning, "[WARN] ", CONFIG_PREUSER_OUTPUT_WARN);
 message_funcs!(error, "[ERROR] ", CONFIG_PREUSER_OUTPUT_ERROR);
 message_funcs!(fatal, "[FATAL] ", CONFIG_PREUSER_OUTPUT_FATAL);
 message_funcs!(output, "", NONE);
+
+/// Resets the position of output to the screen.
+pub fn sreset() {
+    unsafe {
+        OUTPUT_TERM_POSITION = (0, 0);
+    }
+}
 

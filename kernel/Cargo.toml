@@ -17,6 +17,10 @@ panic = "abort"
 name = "entrypoint"
 path = "src/internal/arch/x86/entry.rs"
 
+[[bin]]
+name = "main"
+path = "src/internal/main.rs"
+
 [lib]
 name = "aphrodite"
 path = "src/include/mod.rs"

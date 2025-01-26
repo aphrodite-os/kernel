@@ -14,6 +14,8 @@ pub struct FramebufferInfo {
     pub height: u32,
     /// Bits per pixel.
     pub bpp: u8,
+    /// Whether to change the cursor position after outputting text.
+    pub change_cursor: bool,
 }
 
 /// Returned when the provided position is invalid in the X direction.
@@ -29,7 +31,7 @@ pub const BLACK_ON_BLACK: u8 = 0b00000000;
 
 impl FramebufferInfo {
     /// Writes a character to the screen.
-    pub fn write_char(self, pos: (u32, u32), char: u8, color: u8) -> Result<(), crate::Error<'static>> {
+    pub fn write_char(self, mut pos: (u32, u32), char: u8, color: u8) -> Result<(), crate::Error<'static>> {
         if pos.0>self.width {
             return Err(crate::Error::new("Invalid X position", ERR_INVALID_X));
         }
@@ -42,6 +44,10 @@ impl FramebufferInfo {
             addr += (pos.0*(self.bpp as u32/8)) as usize;
             let base_ptr = addr as *mut u16;
             (*base_ptr) = ((color as u16)<<8) | (char as u16);
+        }
+        pos.1 += 1;
+        if self.change_cursor {
+            self.set_cursor_location(pos);
         }
         Ok(())
     }
@@ -56,29 +62,51 @@ impl FramebufferInfo {
     }
 
     /// Writes a &str to the screen.
-    pub fn write_str(self, pos: (u32, u32), str: &str, color: u8) -> Result<(u32, u32), crate::Error<'static>> {
+    pub fn write_str(mut self, pos: (u32, u32), str: &str, color: u8) -> Result<(u32, u32), crate::Error<'static>> {
         let (mut x, mut y) = pos;
+        let change_cursor = self.change_cursor;
+        if change_cursor {
+            self.change_cursor = false;
+        }
         for char in str.as_bytes() {
             self.write_char((x, y), *char, color)?;
+            if *char == 0 {
+                continue
+            }
             x += 1;
             while x>self.width {
                 x -= self.width;
                 y += 1;
             }
         }
+        if change_cursor {
+            self.change_cursor = true;
+            self.set_cursor_location((x, y));
+        }
         Ok((x, y))
     }
 
     /// Writes a &\[u8] to the screen.
-    pub fn write_bytes(self, pos: (u32, u32), str: &[u8], color: u8) -> Result<(u32, u32), crate::Error<'static>> {
+    pub fn write_bytes(mut self, pos: (u32, u32), str: &[u8], color: u8) -> Result<(u32, u32), crate::Error<'static>> {
         let (mut x, mut y) = pos;
+        let change_cursor = self.change_cursor;
+        if change_cursor {
+            self.change_cursor = false;
+        }
         for char in str {
             self.write_char((x, y), *char, color)?;
+            if *char == 0 {
+                continue
+            }
             x += 1;
             while x>self.width {
                 x -= self.width;
                 y += 1;
             }
+        }
+        if change_cursor {
+            self.change_cursor = true;
+            self.set_cursor_location((x, y));
         }
         Ok((x, y))
     }
@@ -106,5 +134,18 @@ impl FramebufferInfo {
         super::ports::outb(0x3D5, (addr & 0xFF) as u8);
         super::ports::outb(0x3D4, 0x0E);
         super::ports::outb(0x3D5, ((addr >> 8) & 0xFF) as u8);
+    }
+
+    /// Gets the cursor's location.
+    pub fn get_cursor_location(self) -> (u32, u32) {
+        let mut addr: u32 = 0;
+
+        super::ports::outb(0x3D4, 0x0F);
+        addr |= super::ports::inb(0x3D5) as u32;
+
+        super::ports::outb(0x3D4, 0x0E);
+        addr |= (super::ports::inb(0x3D5) as u32) << 8;
+
+        return (addr % self.width, addr / self.width);
     }
 }

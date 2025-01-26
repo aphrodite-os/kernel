@@ -8,7 +8,7 @@
 #![feature(cfg_match)]
 
 use core::{arch::asm, ffi::CStr, panic::PanicInfo};
-use aphrodite::multiboot2::{BootInfo, CString, ColorInfo, FramebufferInfo, MemoryMap, PaletteColorDescriptor, RawMemoryMap, RootTag, Tag};
+use aphrodite::multiboot2::{BootInfo, CString, ColorInfo, FramebufferInfo, MemoryMap, MemorySection, PaletteColorDescriptor, RawMemoryMap, RootTag, Tag};
 use aphrodite::arch::x86::output::*;
 use aphrodite::arch::x86::egatext as egatext;
 use egatext::*;
@@ -142,8 +142,7 @@ extern "C" fn _start() -> ! {
                             BI.memory_map = Some(MemoryMap {
                                 version: (*rawmemorymap).entry_version,
                                 entry_size: (*rawmemorymap).entry_size,
-                                sections: &(*rawmemorymap).sections[0],
-                                sections_len: (*rawmemorymap).sections.len()
+                                sections: &*core::ptr::from_raw_parts((&(*rawmemorymap).sections[0]) as &MemorySection, (*rawmemorymap).sections.len()),
                             });
                         },
                         2 => { // Bootloader name
@@ -268,21 +267,24 @@ extern "C" fn _start() -> ! {
                 },
                 2 => { // EGA Text
                     sdebugsnpln("(EGA Text)");
-                    sdebugsln("Attempting to output to screen(will then loop for 100000000 cycles)...");
+                    sdebugsln("Beginning output to screen...");
 
                     let ega = egatext::FramebufferInfo {
                         address: framebuffer_info.address,
                         pitch: framebuffer_info.pitch,
                         width: framebuffer_info.width,
                         height: framebuffer_info.height,
-                        bpp: framebuffer_info.bpp
+                        bpp: framebuffer_info.bpp,
+                        change_cursor: true,
                     };
-                    ega.clear_screen(BLACK_ON_BLACK);
+                    ega.clear_screen(WHITE_ON_BLACK);
                     ega.enable_cursor(14, 15);
                     ega.set_cursor_location((0, 0));
                     tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
                     tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
                     tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
+
+                    aphrodite::_entry::_entry(Some(ega), &BI);
                 },
                 _ => {
                     unreachable!();
@@ -291,12 +293,14 @@ extern "C" fn _start() -> ! {
         }
     }
 
-    panic!("kernel unexpectedly exited");
+    unsafe {
+        aphrodite::_entry::_entry(None, &BI);
+    }
 }
 
 #[unsafe(link_section = ".panic")]
 #[panic_handler]
-#[cfg(not(CONFIG_PREUSER_HALT_ON_PANIC = "false"))]
+#[cfg(not(CONFIG_HALT_ON_PANIC = "false"))]
 fn halt_on_panic(info: &PanicInfo) -> ! {
     let message = info.message().as_str().unwrap_or("");
     if message != "" {
@@ -311,7 +315,7 @@ fn halt_on_panic(info: &PanicInfo) -> ! {
 
 #[unsafe(link_section = ".panic")]
 #[panic_handler]
-#[cfg(all(CONFIG_PREUSER_SPIN_ON_PANIC = "true", CONFIG_PREUSER_HALT_ON_PANIC = "false"))]
+#[cfg(all(CONFIG_SPIN_ON_PANIC = "true", CONFIG_PREUSER_HALT_ON_PANIC = "false"))]
 fn spin_on_panic(info: &PanicInfo) -> ! {
     let message = info.message().as_str().unwrap_or("");
     if message != "" {

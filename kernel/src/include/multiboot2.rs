@@ -1,7 +1,7 @@
 //! Definitions of structs for multiboot2 information. Mostly used during pre-userspace.
 
 /// Used when a CString is passed. Move into separate file?
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct CString {
     /// The raw pointer to the string.
     pub ptr: *const u8,
@@ -20,6 +20,15 @@ impl core::ops::Index<usize> for CString {
             ptr += index * size_of::<u8>();
             let ptr = ptr as *const u8;
             &*ptr
+        }
+    }
+}
+
+impl Into<&'static str> for CString {
+    fn into(self) -> &'static str {
+        unsafe {
+            let val: *const str = core::ptr::from_raw_parts(self.ptr, self.len);
+            return &*val;
         }
     }
 }
@@ -89,16 +98,14 @@ pub struct RawMemoryMap {
 }
 
 /// A full memory map provided by a Multiboot2 bootloader.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct MemoryMap {
     /// The version of the memory map. Should be disregarded as it's 0.
     pub version: u32, // currently is 0, future Multiboot2 versions may increment
     /// Size of one entry(one [MemorySection] for Aphrodite)
     pub entry_size: u32,
-    /// A pointer to the first section.
-    pub sections: *const MemorySection,
-    /// The number of sections.
-    pub sections_len: usize
+    /// All sections.
+    pub sections: &'static [MemorySection],
 }
 
 /// A color descriptor for [ColorInfo::Palette].
@@ -190,13 +197,13 @@ pub struct BootInfo {
     // Due to the way modules work, it's not easily possible to make a struct that contains all the modules.
     // Therefore, they are loaded on the fly.
 
-    // Multiboot2 bootloaders may provide us with ELF symbols, but I'm feeling lazy and right now the kernel is a 
-    // flat binary, so I don't care. Sorry if you are affected by this.
+    // Multiboot2 bootloaders may provide us with ELF symbols, but I'm feeling lazy and right now it's mostly
+    // unnecessary, so I don't care. Sorry if you are affected by this.
     
     /// The memory map provided by the bootloader.
     pub memory_map: Option<MemoryMap>,
 
-    /// The name of the bootloader(for example, "GRUB"). C-style UTF-8(null-terminated UTF-8) string.
+    /// The name of the bootloader(for example, "GRUB 2.12"). C-style UTF-8(null-terminated UTF-8) string.
     /// This should contain the original pointer provided by the bootloader.
     pub bootloader_name: Option<CString>,
 
