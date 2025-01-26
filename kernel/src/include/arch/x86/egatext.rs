@@ -1,6 +1,8 @@
 //! Stuff for writing and reading to the EGA text buffer.
 #![cfg(any(target_arch = "x86"))]
 
+use crate::Color;
+
 /// Information about the framebuffer.
 #[derive(Clone, Copy)]
 pub struct FramebufferInfo {
@@ -29,9 +31,9 @@ pub const WHITE_ON_BLACK: u8 = 0b00000111;
 /// Black text on a black background.
 pub const BLACK_ON_BLACK: u8 = 0b00000000;
 
-impl FramebufferInfo {
+impl crate::TextDisplay for FramebufferInfo {
     /// Writes a character to the screen.
-    pub fn write_char(self, mut pos: (u32, u32), char: u8, color: u8) -> Result<(), crate::Error<'static>> {
+    fn write_char(&self, mut pos: (u32, u32), char: u8, color: Color) -> Result<(), crate::Error<'static>> {
         if pos.0>self.width {
             return Err(crate::Error::new("Invalid X position", ERR_INVALID_X));
         }
@@ -51,66 +53,13 @@ impl FramebufferInfo {
         }
         Ok(())
     }
-
-    /// Clears the screen.
-    pub fn clear_screen(self, color: u8) {
-        for x in 0..self.width {
-            for y in 0..self.height {
-                self.write_char((x, y), b' ', color).unwrap();
-            }
-        }
+    fn get_size(&self) -> (u32, u32) {
+        (self.width, self.height)
     }
+}
 
-    /// Writes a &str to the screen.
-    pub fn write_str(mut self, pos: (u32, u32), str: &str, color: u8) -> Result<(u32, u32), crate::Error<'static>> {
-        let (mut x, mut y) = pos;
-        let change_cursor = self.change_cursor;
-        if change_cursor {
-            self.change_cursor = false;
-        }
-        for char in str.as_bytes() {
-            self.write_char((x, y), *char, color)?;
-            if *char == 0 {
-                continue
-            }
-            x += 1;
-            while x>self.width {
-                x -= self.width;
-                y += 1;
-            }
-        }
-        if change_cursor {
-            self.change_cursor = true;
-            self.set_cursor_location((x, y));
-        }
-        Ok((x, y))
-    }
-
-    /// Writes a &\[u8] to the screen.
-    pub fn write_bytes(mut self, pos: (u32, u32), str: &[u8], color: u8) -> Result<(u32, u32), crate::Error<'static>> {
-        let (mut x, mut y) = pos;
-        let change_cursor = self.change_cursor;
-        if change_cursor {
-            self.change_cursor = false;
-        }
-        for char in str {
-            self.write_char((x, y), *char, color)?;
-            if *char == 0 {
-                continue
-            }
-            x += 1;
-            while x>self.width {
-                x -= self.width;
-                y += 1;
-            }
-        }
-        if change_cursor {
-            self.change_cursor = true;
-            self.set_cursor_location((x, y));
-        }
-        Ok((x, y))
-    }
-
+impl FramebufferInfo {
+    
     /// Disables the cursor.
     pub fn disable_cursor(self) {
         super::ports::outb(0x3D4, 0x0A);

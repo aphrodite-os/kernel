@@ -1,3 +1,5 @@
 //! Arch-specific code.
 
-pub mod x86;
+mod x86;
+
+pub use x86::*;

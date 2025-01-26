@@ -10,9 +10,13 @@ pub mod multiboot2;
 pub mod arch;
 mod errors;
 pub mod _entry;
+mod traits;
+pub mod output;
+pub mod boot;
 
 #[allow(unused_imports)] // if there are no constants, then it gives a warning
 pub use constants::*;
 
 pub use errors::*;
 pub use util::*;
+pub use traits::*;
