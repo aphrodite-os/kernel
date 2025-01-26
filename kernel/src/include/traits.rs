@@ -1,14 +1,17 @@
 //! General traits. Mostly implemented in arch/*.
 
 /// A type used for color in the functions of [TextDisplay].
-pub type Color = u8;
+/// 
+/// Type alias for (u8, bool). Boolean argument is whether to
+/// change the value(i.e. for [COLOR_BLACK] and [COLOR_DEFAULT]).
+pub type Color = (u8, bool);
 
 /// Black-on-black.
-pub const COLOR_BLACK: Color = 0;
+pub const COLOR_BLACK: Color = (0, true);
 
 /// Should be whatever color commonly used for status messages.
 /// Generally should be white-on-black. Value is one.
-pub const COLOR_DEFAULT: Color = 1;
+pub const COLOR_DEFAULT: Color = (1, true);
 
 /// Some form of display that can be written too with text.
 pub trait TextDisplay {

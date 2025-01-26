@@ -22,12 +22,12 @@ Cargo.lock
 
 # Generated grub files
 kernel/grub/
-aphrodite-grub.iso
-aphrodite.iso
+kernel/aphrodite-grub.iso
+kernel/aphrodite.iso
 
 # Generated files
-kernel.flat
+kernel/kernel.flat
 config.aphro.tmp
 
 # Per-developer files
-config.aphro
+kernel/config.aphro

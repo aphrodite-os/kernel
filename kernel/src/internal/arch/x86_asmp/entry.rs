@@ -12,7 +12,6 @@ use aphrodite::boot::BootInfo;
 use aphrodite::multiboot2::{FramebufferInfo, MemoryMap, MemorySection, RawMemoryMap, RootTag, Tag};
 use aphrodite::arch::output::*;
 use aphrodite::arch::egatext as egatext;
-use egatext::*;
 use aphrodite::output::*;
 
 #[cfg(not(CONFIG_DISABLE_MULTIBOOT2_SUPPORT))]
@@ -248,7 +247,7 @@ extern "C" fn _start() -> ! {
 
             let ega: &dyn aphrodite::TextDisplay = &framebuffer_info;
             framebuffer_info.disable_cursor();
-            ega.clear_screen(WHITE_ON_BLACK);
+            ega.clear_screen(aphrodite::COLOR_DEFAULT);
             tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
             tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
             tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();

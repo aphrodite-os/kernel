@@ -25,15 +25,18 @@ pub const ERR_INVALID_X: i16 = -1;
 /// Returned when the provided position is invalid in the Y direction.
 pub const ERR_INVALID_Y: i16 = -2;
 
-
-/// White text on a black background.
-pub const WHITE_ON_BLACK: u8 = 0b00000111;
-/// Black text on a black background.
-pub const BLACK_ON_BLACK: u8 = 0b00000000;
-
 impl crate::TextDisplay for FramebufferInfo {
     /// Writes a character to the screen.
     fn write_char(&self, mut pos: (u32, u32), char: u8, color: Color) -> Result<(), crate::Error<'static>> {
+        let mut clr = color.0;
+        if color.1 {
+            match clr {
+                0 => clr = 0,
+                1 => clr = 0b00000111,
+                _ => {}
+            }
+        }
+        let color = clr;
         if pos.0>self.width {
             return Err(crate::Error::new("Invalid X position", ERR_INVALID_X));
         }
