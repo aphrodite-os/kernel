@@ -1,38 +1,5 @@
 //! Definitions of structs for multiboot2 information. Mostly used during pre-userspace.
 
-/// Used when a CString is passed. Move into separate file?
-#[derive(Clone, Copy)]
-pub struct CString {
-    /// The raw pointer to the string.
-    pub ptr: *const u8,
-    /// The length of the string, excluding the null byte(\0) at the end.
-    pub len: usize,
-}
-
-impl core::ops::Index<usize> for CString {
-    type Output = u8;
-    fn index(&self, index: usize) -> &Self::Output {
-        unsafe {
-            if index>self.len {
-                panic!("index into CString too large");
-            }
-            let mut ptr = self.ptr as usize;
-            ptr += index * size_of::<u8>();
-            let ptr = ptr as *const u8;
-            &*ptr
-        }
-    }
-}
-
-impl Into<&'static str> for CString {
-    fn into(self) -> &'static str {
-        unsafe {
-            let val: *const str = core::ptr::from_raw_parts(self.ptr, self.len);
-            return &*val;
-        }
-    }
-}
-
 /// Used for Multiboot2 tags. This shouldn't be used after a [BootInfo] struct has been initalized, but it still can be used.
 #[repr(C)]
 #[derive(Clone)]
@@ -63,7 +30,7 @@ pub struct Module {
     pub mod_end: *const u8,
     /// A string that should be in the format `module_name (command line arguments)`.
     /// See https://github.com/AverseABFun/aphrodite/wiki/Plan/#Bootloader-modules (remember to update link later!).
-    pub mod_str: CString
+    pub mod_str: &'static core::ffi::CStr
 }
 
 /// One memory section provided by a Multiboot2 bootloader.
@@ -79,6 +46,24 @@ pub struct MemorySection {
     pub mem_type: u32,
     /// Reserved space. Should be ignored.
     reserved: u32,
+}
+
+impl crate::boot::MemoryMapping for MemorySection {
+    fn get_type(&self) -> crate::boot::MemoryType {
+        match self.mem_type {
+            1 => crate::boot::MemoryType::Free,
+            2 => crate::boot::MemoryType::HardwareReserved,
+            3 => crate::boot::MemoryType::HardwareSpecific(3, false),
+            5 => crate::boot::MemoryType::Faulty,
+            _ => crate::boot::MemoryType::Reserved
+        }
+    }
+    fn get_start(&self) -> u64 {
+        self.base_addr
+    }
+    fn get_length(&self) -> u64 {
+        self.length
+    }
 }
 
 /// The raw memory map provided by a Multiboot2 bootloader. This is interpreted
@@ -106,6 +91,36 @@ pub struct MemoryMap {
     pub entry_size: u32,
     /// All sections.
     pub sections: &'static [MemorySection],
+
+    /// Iterator's index.
+    pub idx: usize,
+}
+
+impl crate::boot::MemoryMap for MemoryMap {}
+
+impl crate::boot::_MemoryMap for MemoryMap {
+    fn len(&self) -> usize {
+        self.sections.len()
+    }
+}
+
+impl core::ops::Index<usize> for MemoryMap {
+    type Output = dyn crate::boot::MemoryMapping;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.sections[index] as &'static dyn crate::boot::MemoryMapping
+    }
+}
+
+impl core::iter::Iterator for MemoryMap {
+    type Item = &'static dyn crate::boot::MemoryMapping;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.idx += 1;
+        if self.sections.len()<=self.idx-1 {
+            return None;
+        }
+        Some(&self.sections[self.idx-1])
+    }
 }
 
 /// A color descriptor for [ColorInfo::Palette].
@@ -177,7 +192,7 @@ pub struct FramebufferInfo {
 
 /// Boot info collected from provided [Tag]s.
 #[derive(Clone)]
-pub struct BootInfo {
+pub struct Multiboot2BootInfo {
     /// See https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html#Basic-memory-information.
     /// Tl;dr: mem_lower indicates the amount of "lower memory"
     /// and mem_upper the amount of "upper memory".
@@ -192,7 +207,7 @@ pub struct BootInfo {
     /// We're provided with a C-style UTF-8(null-terminated UTF-8) string. This should contain the original pointer provided by
     /// the bootloader.
     /// See https://github.com/AverseABFun/aphrodite/wiki/Plan#bootloader (remember to update link later!) for the format.
-    pub cmdline: Option<CString>,
+    pub cmdline: Option<&'static core::ffi::CStr>,
 
     // Due to the way modules work, it's not easily possible to make a struct that contains all the modules.
     // Therefore, they are loaded on the fly.
@@ -205,7 +220,7 @@ pub struct BootInfo {
 
     /// The name of the bootloader(for example, "GRUB 2.12"). C-style UTF-8(null-terminated UTF-8) string.
     /// This should contain the original pointer provided by the bootloader.
-    pub bootloader_name: Option<CString>,
+    pub bootloader_name: Option<&'static core::ffi::CStr>,
 
     // APM table is ignored as APM has been superseded by ACPI. If your system doesn't support ACPI, good luck.
 

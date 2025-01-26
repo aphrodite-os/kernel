@@ -1,5 +1,5 @@
 //! Arch-specific code.
 
-mod x86;
+mod x86_asmp;
 
-pub use x86::*;
+pub use x86_asmp::*;

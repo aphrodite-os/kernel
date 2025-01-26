@@ -15,7 +15,7 @@ panic = "abort"
 
 [[bin]]
 name = "entrypoint"
-path = "src/internal/arch/x86/entry.rs"
+path = "src/internal/arch/x86_asmp/entry.rs"
 
 [[bin]]
 name = "main"

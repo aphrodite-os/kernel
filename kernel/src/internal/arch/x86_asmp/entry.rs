@@ -8,10 +8,12 @@
 #![feature(cfg_match)]
 
 use core::{arch::asm, ffi::CStr, panic::PanicInfo};
-use aphrodite::multiboot2::{BootInfo, CString, ColorInfo, FramebufferInfo, MemoryMap, MemorySection, PaletteColorDescriptor, RawMemoryMap, RootTag, Tag};
-use aphrodite::arch::x86::output::*;
-use aphrodite::arch::x86::egatext as egatext;
+use aphrodite::boot::BootInfo;
+use aphrodite::multiboot2::{FramebufferInfo, MemoryMap, MemorySection, RawMemoryMap, RootTag, Tag};
+use aphrodite::arch::output::*;
+use aphrodite::arch::egatext as egatext;
 use egatext::*;
+use aphrodite::output::*;
 
 #[cfg(not(CONFIG_DISABLE_MULTIBOOT2_SUPPORT))]
 #[unsafe(link_section = ".multiboot2")]
@@ -25,19 +27,25 @@ static MULTIBOOT2_HEADER: [u8; 29] = [
 
 // The root tag, provided directly from the multiboot2 bootloader.
 static mut RT: *const RootTag = core::ptr::null();
-// The boot info struct, created from all of the tags.
-static mut BI: BootInfo = BootInfo {
-    mem_lower: None,
-    mem_upper: None,
-    cmdline: None,
-    memory_map: None,
-    bootloader_name: None,
-    framebuffer_info: None,
-    color_info: None,
-};
 
 // The raw pointer to bootloader-specific data.
 static mut O: *const u8 = core::ptr::null();
+
+static mut MM: MemoryMap = MemoryMap {
+    entry_size: 0,
+    version: 0,
+    sections: &[],
+    idx: 0,
+};
+
+static mut FBI: aphrodite::arch::egatext::FramebufferInfo = aphrodite::arch::egatext::FramebufferInfo {
+    address: 0,
+    pitch: 0,
+    width: 0,
+    height: 0,
+    bpp: 0,
+    change_cursor: false,
+};
 
 // The magic number in eax. 0x36D76289 for multiboot2.
 static mut MAGIC: u32 = 0xFFFFFFFF;
@@ -45,6 +53,13 @@ static mut MAGIC: u32 = 0xFFFFFFFF;
 #[unsafe(link_section = ".start")]
 #[unsafe(no_mangle)]
 extern "C" fn _start() -> ! {
+    #[allow(non_snake_case)]
+    let mut BI: BootInfo<'static> = BootInfo {
+        cmdline: None,
+        memory_map: None,
+        bootloader_name: None,
+        output: None,
+    };
     unsafe { // Copy values provided by the bootloader out
 
         // Aphrodite bootloaders pass values in eax and ebx, however rust doesn't know that it can't overwrite those.
@@ -103,10 +118,6 @@ extern "C" fn _start() -> ! {
                             if current_tag.tag_len != 16 { // Unexpected size, something is probably up
                                 panic!("size of basic memory information tag != 16");
                             }
-
-                            BI.mem_lower = Some(*((ptr + 8) as *const u32));
-                            BI.mem_upper = Some(*((ptr + 12) as *const u32));
-                            // The end result of the above is adding an offset to a pointer and retrieving the value at that pointer
                         },
                         5 => { // BIOS boot device, ignore
                             if current_tag.tag_len != 20 { // Unexpected size, something is probably up
@@ -120,13 +131,7 @@ extern "C" fn _start() -> ! {
                             let cstring = CStr::from_ptr((ptr + 8) as *const i8);
                             // creates a &core::ffi::CStr from the start of the command line...
 
-                            let cstring = CString {
-                                ptr: cstring.as_ptr() as *const u8,
-                                len: cstring.to_bytes().len()
-                            };
-                            // ...which can then be converted to a aphrodite::multiboot2::CString...
-
-                            BI.cmdline = Some(cstring);
+                            BI.cmdline = Some(cstring.to_str().unwrap());
                             // ...before the BootInfo's commandline is set.
                         },
                         6 => { // Memory map tag
@@ -139,11 +144,13 @@ extern "C" fn _start() -> ! {
                             // The end result of the above is creating a *const RawMemoryMap that has the same address as current_tag
                             // and has all of the [aphrodite::multiboot2::MemorySection]s for the memory map
 
-                            BI.memory_map = Some(MemoryMap {
+                            MM = MemoryMap {
                                 version: (*rawmemorymap).entry_version,
                                 entry_size: (*rawmemorymap).entry_size,
                                 sections: &*core::ptr::from_raw_parts((&(*rawmemorymap).sections[0]) as &MemorySection, (*rawmemorymap).sections.len()),
-                            });
+                                idx: 0
+                            };
+                            BI.memory_map = Some(&MM);
                         },
                         2 => { // Bootloader name
                             if current_tag.tag_len < 8 { // Unexpected size, something is probably up
@@ -152,13 +159,7 @@ extern "C" fn _start() -> ! {
                             let cstring = CStr::from_ptr((ptr + 8) as *const i8);
                             // creates a &core::ffi::CStr from the start of the bootloader name...
 
-                            let cstring = CString {
-                                ptr: cstring.as_ptr() as *const u8,
-                                len: cstring.to_bytes().len()
-                            };
-                            // ...which can then be converted to a aphrodite::multiboot2::CString...
-
-                            BI.bootloader_name = Some(cstring);
+                            BI.bootloader_name = Some(cstring.to_str().unwrap());
                             // ...before the BootInfo's bootloader_name is set.
                         },
                         8 => { // Framebuffer info
@@ -166,33 +167,30 @@ extern "C" fn _start() -> ! {
                                 panic!("size of framebuffer info tag < 32");
                             }
                             let framebufferinfo: *const FramebufferInfo = (ptr as usize + size_of::<Tag>()) as *const FramebufferInfo;
-                            let colorinfo: ColorInfo;
                             match (*framebufferinfo).fb_type {
                                 0 => { // Indexed
-                                    colorinfo = ColorInfo::Palette {
-                                        num_colors: *((ptr + 32) as *const u32),
-                                        palette: (ptr + 36) as *const PaletteColorDescriptor
-                                    };
+                                    panic!("Indexed color is unimplemented");
                                 },
                                 1 => { // RGB
-                                    colorinfo = ColorInfo::RGBColor {
-                                        red_field_position: *((ptr + 32) as *const u8),
-                                        red_mask_size: *((ptr + 33) as *const u8),
-                                        green_field_position: *((ptr + 34) as *const u8),
-                                        green_mask_size: *((ptr + 35) as *const u8),
-                                        blue_field_position: *((ptr + 36) as *const u8),
-                                        blue_mask_size: *((ptr + 37) as *const u8)
-                                    }
+                                    panic!("RGB color is unimplemented");
                                 },
-                                2 => { // EGA Text
-                                    colorinfo = ColorInfo::EGAText;
+                                2 => { // EGA Text  
                                 },
                                 _ => {
                                     panic!("unknown color info type")
                                 }
                             }
-                            BI.framebuffer_info = Some((*framebufferinfo).clone());
-                            BI.color_info = Some(colorinfo);
+                            let framebuffer_info = (*framebufferinfo).clone();
+
+                            FBI = egatext::FramebufferInfo {
+                                address: framebuffer_info.address,
+                                pitch: framebuffer_info.pitch,
+                                width: framebuffer_info.width,
+                                height: framebuffer_info.height,
+                                bpp: framebuffer_info.bpp,
+                                change_cursor: false,
+                            };
+                            BI.output = Some(&FBI)
                         },
                         _ => { // Unknown/unimplemented tag type, ignore
                             swarnings("Unknown tag type ");
@@ -232,9 +230,8 @@ extern "C" fn _start() -> ! {
     sdebugsln("Bootloader information has been successfully loaded");
     soutputu(b'\n');
     unsafe {
-        if BI.framebuffer_info.clone().is_some() {
-            let framebuffer_info = BI.framebuffer_info.clone().unwrap();
-            let color_info = BI.color_info.clone().unwrap();
+        if BI.output.clone().is_some() {
+            let framebuffer_info = FBI;
 
             sdebugs("Framebuffer width: ");
             sdebugbnpln(&aphrodite::u32_as_u8_slice(framebuffer_info.width));
@@ -246,68 +243,43 @@ extern "C" fn _start() -> ! {
             sdebugbnpln(&aphrodite::usize_as_u8_slice(framebuffer_info.address as usize));
             sdebugs("Framebuffer bpp: ");
             sdebugbnpln(&aphrodite::u8_as_u8_slice(framebuffer_info.bpp));
-            sdebugs("Framebuffer type: ");
-            sdebugbnp(&aphrodite::u8_as_u8_slice(framebuffer_info.fb_type));
+            
+            sdebugsln("Beginning output to screen...");
 
-            match framebuffer_info.fb_type {
-                0 => { // Indexed
-                    sdebugsnpln("(Indexed)");
-                    let ColorInfo::Palette{num_colors, palette: _} = color_info else { unreachable!() };
-                    sdebugs("Number of palette colors: ");
-                    sdebugbnpln(&aphrodite::u32_as_u8_slice(num_colors));
-                    
-                    sfatalsln("Halting CPU; Indexed color unimplemented");
-                    asm!("hlt", options(noreturn));
-                },
-                1 => { // RGB
-                    sdebugsnpln("(RGB)");
+            let ega: &dyn aphrodite::TextDisplay = &framebuffer_info;
+            framebuffer_info.disable_cursor();
+            ega.clear_screen(WHITE_ON_BLACK);
+            tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
+            tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
+            tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
 
-                    sfatalsln("Halting CPU; RGB color unimplemented");
-                    asm!("hlt", options(noreturn));
-                },
-                2 => { // EGA Text
-                    sdebugsnpln("(EGA Text)");
-                    sdebugsln("Beginning output to screen...");
-
-                    let ega = egatext::FramebufferInfo {
-                        address: framebuffer_info.address,
-                        pitch: framebuffer_info.pitch,
-                        width: framebuffer_info.width,
-                        height: framebuffer_info.height,
-                        bpp: framebuffer_info.bpp,
-                        change_cursor: true,
-                    };
-                    ega.clear_screen(WHITE_ON_BLACK);
-                    ega.enable_cursor(14, 15);
-                    ega.set_cursor_location((0, 0));
-                    tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
-                    tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
-                    tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
-
-                    aphrodite::_entry::_entry(Some(ega), &BI);
-                },
-                _ => {
-                    unreachable!();
-                }
-            }
+            aphrodite::_entry::_entry(Some(ega), &BI);
         }
     }
 
-    unsafe {
-        aphrodite::_entry::_entry(None, &BI);
-    }
+    aphrodite::_entry::_entry(None, &BI);
 }
 
 #[unsafe(link_section = ".panic")]
 #[panic_handler]
 #[cfg(not(CONFIG_HALT_ON_PANIC = "false"))]
 fn halt_on_panic(info: &PanicInfo) -> ! {
+    if info.location().is_some() {
+        sfatals("Panic at ");
+        sfatalsnp(info.location().unwrap().file());
+        sfatalsnp(":");
+        sfatalbnp(&aphrodite::u32_as_u8_slice(info.location().unwrap().line()));
+        sfatalsnp(":");
+        sfatalbnp(&aphrodite::u32_as_u8_slice(info.location().unwrap().column()));
+        sfatalsnp(": ");
+    } else {
+        sfatals("Panic: ");
+    }
     let message = info.message().as_str().unwrap_or("");
     if message != "" {
-        sfatals(message);
-        aphrodite::arch::x86::ports::outb(aphrodite::arch::x86::DEBUG_PORT, b'\n');
+        sfatalsnpln(message);
     }
-    aphrodite::arch::x86::interrupts::disable_interrupts();
+    aphrodite::arch::interrupts::disable_interrupts();
     unsafe {
         asm!("hlt", options(noreturn));
     }
@@ -317,11 +289,21 @@ fn halt_on_panic(info: &PanicInfo) -> ! {
 #[panic_handler]
 #[cfg(all(CONFIG_SPIN_ON_PANIC = "true", CONFIG_PREUSER_HALT_ON_PANIC = "false"))]
 fn spin_on_panic(info: &PanicInfo) -> ! {
+    if info.location().is_some() {
+        sfatals("Panic at ");
+        sfatalsnp(info.location().unwrap().file());
+        sfatalsnp(":");
+        sfatalbnp(&aphrodite::u32_as_u8_slice(info.location().unwrap().line()));
+        sfatalsnp(":");
+        sfatalbnp(&aphrodite::u32_as_u8_slice(info.location().unwrap().column()));
+        sfatalsnp(": ");
+    } else {
+        sfatals("Panic: ");
+    }
     let message = info.message().as_str().unwrap_or("");
     if message != "" {
-        sfatals(message);
-        aphrodite::arch::x86::ports::outb(aphrodite::arch::x86::DEBUG_PORT, b'\n');
+        sfatalsnpln(message);
     }
-    aphrodite::arch::x86::interrupts::disable_interrupts();
+    aphrodite::arch::interrupts::disable_interrupts();
     loop {}
 }

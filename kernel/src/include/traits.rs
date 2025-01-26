@@ -6,8 +6,8 @@ pub type Color = u8;
 /// Black-on-black.
 pub const COLOR_BLACK: Color = 0;
 
-/// Should be whatever colors commonly used for status messages.
-/// Generally should be white-on-black.
+/// Should be whatever color commonly used for status messages.
+/// Generally should be white-on-black. Value is one.
 pub const COLOR_DEFAULT: Color = 1;
 
 /// Some form of display that can be written too with text.
