@@ -1,4 +1,4 @@
-//! This provides syscalls(for userspace programs) and types(for userspace and kernelspace programs) for the Aphrodite kernel.
+//! This provides raw methods for internal kernel usage for the Aphrodite kernel. See aphrodite_user for userspace.
 #![no_std]
 #![warn(missing_docs)]
 #![feature(ptr_metadata)]
@@ -13,10 +13,14 @@ pub mod _entry;
 mod traits;
 pub mod output;
 pub mod boot;
+pub mod psfont;
+pub mod display;
 
 #[allow(unused_imports)] // if there are no constants, then it gives a warning
 pub use constants::*;
 
 pub use errors::*;
 pub use util::*;
+
+#[allow(unused_imports)] // if there are no traits, then it gives a warning
 pub use traits::*;

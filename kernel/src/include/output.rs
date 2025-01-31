@@ -1,15 +1,15 @@
 //! Architecture-independent output functions.
 
 use paste::paste;
-use crate::COLOR_DEFAULT;
+use crate::display::COLOR_DEFAULT;
 
 static mut OUTPUT_TERM_POSITION: (u32, u32) = (0, 0);
 
 macro_rules! message_funcs {
     ($func_name:ident, $prefix:literal, $level:ident) => {
         paste! {
-            /// Outputs a $func_name message &str to the terminal.
-            pub fn [< t $func_name s >](s: &str, info: &dyn crate::TextDisplay) -> Result<(), crate::Error<'static>> {
+            /// Outputs a message &str to the terminal.
+            pub fn [< t $func_name s >](s: &str, info: &dyn crate::display::TextDisplay) -> Result<(), crate::Error<'static>> {
                 unsafe {
                     if cfg!($level = "false") {
                         return Ok(());
@@ -19,8 +19,8 @@ macro_rules! message_funcs {
                 }
                 Ok(())
             }
-            /// Outputs a $func_name message &str and a newline to the terminal.
-            pub fn [< t $func_name sln >](s: &str, info: &dyn crate::TextDisplay) -> Result<(), crate::Error<'static>> {
+            /// Outputs a message &str and a newline to the terminal.
+            pub fn [< t $func_name sln >](s: &str, info: &dyn crate::display::TextDisplay) -> Result<(), crate::Error<'static>> {
                 unsafe {
                     if cfg!($level = "false") {
                         return Ok(());
@@ -33,8 +33,8 @@ macro_rules! message_funcs {
                 Ok(())
             }
 
-            /// Outputs a $func_name message &\[u8] to the terminal.
-            pub fn [< t $func_name b >](s: &[u8], info: &dyn crate::TextDisplay) -> Result<(), crate::Error<'static>> {
+            /// Outputs a message &\[u8] to the terminal.
+            pub fn [< t $func_name b >](s: &[u8], info: &dyn crate::display::TextDisplay) -> Result<(), crate::Error<'static>> {
                 unsafe {
                     if cfg!($level = "false") {
                         return Ok(());
@@ -44,8 +44,8 @@ macro_rules! message_funcs {
                 }
                 Ok(())
             }
-            /// Outputs a $func_name message &\[u8] and a newline to the terminal.
-            pub fn [< t $func_name bln >](s: &[u8], info: &dyn crate::TextDisplay) -> Result<(), crate::Error<'static>> {
+            /// Outputs a message &\[u8] and a newline to the terminal.
+            pub fn [< t $func_name bln >](s: &[u8], info: &dyn crate::display::TextDisplay) -> Result<(), crate::Error<'static>> {
                 unsafe {
                     if cfg!($level = "false") {
                         return Ok(());
@@ -58,8 +58,8 @@ macro_rules! message_funcs {
                 Ok(())
             }
 
-            /// Outputs a(n) $func_name message u8 to the terminal.
-            pub fn [< t $func_name u >](s: u8, info: &dyn crate::TextDisplay) -> Result<(), crate::Error<'static>> {
+            /// Outputs a message u8 to the terminal.
+            pub fn [< t $func_name u >](s: u8, info: &dyn crate::display::TextDisplay) -> Result<(), crate::Error<'static>> {
                 let (width, _) = info.get_size();
                 unsafe {
                     if cfg!($level = "false") {
@@ -78,8 +78,8 @@ macro_rules! message_funcs {
 
             ///////////////////////////////////////////////////////////////
 
-            /// Outputs a $func_name message &str to the terminal without a prefix.
-            pub fn [< t $func_name snp >](s: &str, info: &dyn crate::TextDisplay) -> Result<(), crate::Error<'static>> {
+            /// Outputs a message &str to the terminal without a prefix.
+            pub fn [< t $func_name snp >](s: &str, info: &dyn crate::display::TextDisplay) -> Result<(), crate::Error<'static>> {
                 unsafe {
                     if cfg!($level = "false") {
                         return Ok(());
@@ -88,8 +88,8 @@ macro_rules! message_funcs {
                 }
                 Ok(())
             }
-            /// Outputs a $func_name message &str and a newline to the terminal without a prefix.
-            pub fn [< t $func_name snpln >](s: &str, info: &dyn crate::TextDisplay) -> Result<(), crate::Error<'static>> {
+            /// Outputs a message &str and a newline to the terminal without a prefix.
+            pub fn [< t $func_name snpln >](s: &str, info: &dyn crate::display::TextDisplay) -> Result<(), crate::Error<'static>> {
                 unsafe {
                     if cfg!($level = "false") {
                         return Ok(());
@@ -101,8 +101,8 @@ macro_rules! message_funcs {
                 Ok(())
             }
 
-            /// Outputs a $func_name message &\[u8] to the terminal without a prefix.
-            pub fn [< t $func_name bnp >](s: &[u8], info: &dyn crate::TextDisplay) -> Result<(), crate::Error<'static>> {
+            /// Outputs a message &\[u8] to the terminal without a prefix.
+            pub fn [< t $func_name bnp >](s: &[u8], info: &dyn crate::display::TextDisplay) -> Result<(), crate::Error<'static>> {
                 unsafe {
                     if cfg!($level = "false") {
                         return Ok(());
@@ -111,8 +111,8 @@ macro_rules! message_funcs {
                 }
                 Ok(())
             }
-            /// Outputs a $func_name message &\[u8] and a newline to the terminal without a prefix.
-            pub fn [< t $func_name bnpln >](s: &[u8], info: &dyn crate::TextDisplay) -> Result<(), crate::Error<'static>> {
+            /// Outputs a message &\[u8] and a newline to the terminal without a prefix.
+            pub fn [< t $func_name bnpln >](s: &[u8], info: &dyn crate::display::TextDisplay) -> Result<(), crate::Error<'static>> {
                 unsafe {
                     if cfg!($level = "false") {
                         return Ok(());
@@ -124,8 +124,8 @@ macro_rules! message_funcs {
                 Ok(())
             }
 
-            /// Outputs a(n) $func_name message u8 to the terminal without a prefix.
-            pub fn [< t $func_name unp >](s: u8, info: &dyn crate::TextDisplay) -> Result<(), crate::Error<'static>> {
+            /// Outputs a message u8 to the terminal without a prefix.
+            pub fn [< t $func_name unp >](s: u8, info: &dyn crate::display::TextDisplay) -> Result<(), crate::Error<'static>> {
                 let (width, _) = info.get_size();
                 unsafe {
                     if cfg!($level = "false") {

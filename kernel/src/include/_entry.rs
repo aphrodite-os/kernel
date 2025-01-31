@@ -7,6 +7,6 @@ use crate::output::*;
 
 /// The real entrypoint to the kernel. `internel/arch/*/entry.rs` files eventually call this.
 #[allow(non_snake_case)]
-pub fn _entry(display: Option<&dyn crate::TextDisplay>, BI: &crate::boot::BootInfo) -> ! {
+pub fn _entry(display: Option<&dyn crate::display::TextDisplay>, BI: &crate::boot::BootInfo) -> ! {
     loop {}
 }

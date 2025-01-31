@@ -8,8 +8,15 @@
 
     . "$DIR/functions"
 
-    rm config.aphro.tmp
-    cp config.aphro config.aphro.tmp
+    # -f makes it so it won't error out if the file doesn't exist
+    rm -f config.aphro.tmp
+    envsubst < "config.aphro" > "config.aphro.tmp"
+
+    # see above about -f
+    rm -f targets.tmp
+    envsubst < "targets" > "targets.tmp"
+
+    export $(grep -Ev '^#' targets.tmp | xargs)
 
     export $(grep -Ev '^#' config.aphro.tmp | xargs)
 
@@ -26,7 +33,9 @@
 
     cd ../kernel
 
-    cargo build --target i686-unknown-none.json --release -Zbuild-std --bin entrypoint
+    for target in $TARGETS; do
+        cargo build --target "$target" --release -Zbuild-std --bin entrypoint
+    done
     # build the kernel's entrypoint
 
     cp target/i686-unknown-none/release/entrypoint kernel.flat

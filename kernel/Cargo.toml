@@ -1,6 +1,6 @@
 [package]
 name = "kernel"
-version = "0.1.0"
+version = "0.2.0-devel-0000"
 edition = "2024"
 
 [dependencies]
@@ -14,7 +14,7 @@ codegen-units = 1
 panic = "abort"
 
 [[bin]]
-name = "entrypoint"
+name = "entrypoint_x86"
 path = "src/internal/arch/x86_asmp/entry.rs"
 
 [[bin]]

@@ -17,11 +17,15 @@ use aphrodite::output::*;
 #[cfg(not(CONFIG_DISABLE_MULTIBOOT2_SUPPORT))]
 #[unsafe(link_section = ".multiboot2")]
 #[unsafe(no_mangle)]
-static MULTIBOOT2_HEADER: [u8; 29] = [
-	0xd6, 0x50, 0x52, 0xe8, 0x00, 0x00, 0x00, 0x00, 
-	0x18, 0x00, 0x00, 0x00, 0x12, 0xaf, 0xad, 0x17, 
-	0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 
-	0xe9, 0x55, 0x00, 0x00, 0x00
+static MULTIBOOT2_HEADER: [u8; 24] = [
+	0xd6, 0x50, 0x52, 0xe8, // Magic number
+    0x00, 0x00, 0x00, 0x00, // Architecture
+	0x18, 0x00, 0x00, 0x00, // Size
+    0x12, 0xaf, 0xad, 0x17, // Checksum
+
+	0x00, 0x00, // End tag
+    0x00, 0x00, // Flags
+    0x08, 0x00, 0x00, 0x00, // Size
 ];
 
 // The root tag, provided directly from the multiboot2 bootloader.
@@ -52,15 +56,7 @@ static mut MAGIC: u32 = 0xFFFFFFFF;
 #[unsafe(link_section = ".start")]
 #[unsafe(no_mangle)]
 extern "C" fn _start() -> ! {
-    #[allow(non_snake_case)]
-    let mut BI: BootInfo<'static> = BootInfo {
-        cmdline: None,
-        memory_map: None,
-        bootloader_name: None,
-        output: None,
-    };
     unsafe { // Copy values provided by the bootloader out
-
         // Aphrodite bootloaders pass values in eax and ebx, however rust doesn't know that it can't overwrite those.
         // we force using ebx and eax as the output of an empty assembly block to let it know.
         asm!(
@@ -69,6 +65,13 @@ extern "C" fn _start() -> ! {
             options(nomem, nostack, preserves_flags, pure)
         );
     }
+    #[allow(non_snake_case)]
+    let mut BI: BootInfo<'static> = BootInfo {
+        cmdline: None,
+        memory_map: None,
+        bootloader_name: None,
+        output: None,
+    };
     unsafe {
         match MAGIC {
             #[cfg(not(CONFIG_DISABLE_MULTIBOOT2_SUPPORT))]
@@ -227,7 +230,7 @@ extern "C" fn _start() -> ! {
         }
     }
     sdebugsln("Bootloader information has been successfully loaded");
-    soutputu(b'\n');
+    sdebugunp(b'\n');
     unsafe {
         if BI.output.clone().is_some() {
             let framebuffer_info = FBI;
@@ -248,9 +251,9 @@ extern "C" fn _start() -> ! {
             let ega: &dyn aphrodite::TextDisplay = &framebuffer_info;
             framebuffer_info.disable_cursor();
             ega.clear_screen(aphrodite::COLOR_DEFAULT);
-            tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
-            tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
-            tdebugsln("Testing EGA Text framebuffer...", ega).unwrap();
+            toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
+            toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
+            toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
 
             aphrodite::_entry::_entry(Some(ega), &BI);
         }

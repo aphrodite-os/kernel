@@ -49,7 +49,7 @@ pub trait MemoryMap: _MemoryMap + core::any::Any {}
 #[derive(Clone)]
 pub struct BootInfo<'a> {
     /// The commandline of the kernel.
-    /// See https://github.com/AverseABFun/aphrodite/wiki/Plan#bootloader (remember to update link later!) for the format.
+    /// See <https://aphrodite-os.github.io/book/command-line.html> for the format.
     pub cmdline: Option<&'static str>,
     
     /// The memory map provided by the bootloader. If None, the kernel will attempt to generate it.
@@ -59,5 +59,5 @@ pub struct BootInfo<'a> {
     pub bootloader_name: Option<&'static str>,
 
     /// Provides a way to display text.
-    pub output: Option<&'a dyn crate::TextDisplay>,
+    pub output: Option<&'a dyn crate::display::TextDisplay>,
 }

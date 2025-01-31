@@ -1,6 +1,6 @@
 //! Definitions of structs for multiboot2 information. Mostly used during pre-userspace.
 
-/// Used for Multiboot2 tags. This shouldn't be used after a [BootInfo] struct has been initalized, but it still can be used.
+/// Used for Multiboot2 tags. This shouldn't be used after a [crate::boot::BootInfo] struct has been initalized, but it still can be used.
 #[repr(C)]
 #[derive(Clone)]
 pub struct Tag {
@@ -21,7 +21,7 @@ pub struct RootTag {
     reserved: u32,
 }
 
-/// A Multiboot2 module. See https://github.com/AverseABFun/aphrodite/wiki/Plan/#Bootloader-modules (remember to update link later!).
+/// A Multiboot2 module. See <https://aphrodite-os.github.io/book/bootloader-modules.html>.
 #[derive(Clone)]
 pub struct Module {
     /// A pointer to the start of the module
@@ -29,7 +29,7 @@ pub struct Module {
     /// A pointer to the end of the module
     pub mod_end: *const u8,
     /// A string that should be in the format `module_name (command line arguments)`.
-    /// See https://github.com/AverseABFun/aphrodite/wiki/Plan/#Bootloader-modules (remember to update link later!).
+    /// See <https://aphrodite-os.github.io/book/bootloader-modules.html>.
     pub mod_str: &'static core::ffi::CStr
 }
 
@@ -193,7 +193,7 @@ pub struct FramebufferInfo {
 /// Boot info collected from provided [Tag]s.
 #[derive(Clone)]
 pub struct Multiboot2BootInfo {
-    /// See https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html#Basic-memory-information.
+    /// See <https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html#Basic-memory-information>.
     /// Tl;dr: mem_lower indicates the amount of "lower memory"
     /// and mem_upper the amount of "upper memory".
     pub mem_lower: Option<u32>,
@@ -206,7 +206,7 @@ pub struct Multiboot2BootInfo {
 
     /// We're provided with a C-style UTF-8(null-terminated UTF-8) string. This should contain the original pointer provided by
     /// the bootloader.
-    /// See https://github.com/AverseABFun/aphrodite/wiki/Plan#bootloader (remember to update link later!) for the format.
+    /// See <https://aphrodite-os.github.io/book/command-line.html> for the format.
     pub cmdline: Option<&'static core::ffi::CStr>,
 
     // Due to the way modules work, it's not easily possible to make a struct that contains all the modules.

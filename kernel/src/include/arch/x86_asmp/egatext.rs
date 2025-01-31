@@ -1,7 +1,7 @@
 //! Stuff for writing and reading to the EGA text buffer.
 #![cfg(any(target_arch = "x86"))]
 
-use crate::Color;
+use crate::display::Color;
 
 /// Information about the framebuffer.
 #[derive(Clone, Copy)]
@@ -25,7 +25,7 @@ pub const ERR_INVALID_X: i16 = -1;
 /// Returned when the provided position is invalid in the Y direction.
 pub const ERR_INVALID_Y: i16 = -2;
 
-impl crate::TextDisplay for FramebufferInfo {
+impl crate::display::TextDisplay for FramebufferInfo {
     /// Writes a character to the screen.
     fn write_char(&self, mut pos: (u32, u32), char: u8, color: Color) -> Result<(), crate::Error<'static>> {
         let mut clr = color.0;

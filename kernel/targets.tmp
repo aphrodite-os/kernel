@@ -1,0 +1,4 @@
+# Targets used for documentation.
+x86=/i686-unknown-none.json
+
+TARGETS=
