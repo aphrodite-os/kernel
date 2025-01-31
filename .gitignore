@@ -27,7 +27,8 @@ kernel/aphrodite.iso
 
 # Generated files
 kernel/kernel.flat
-config.aphro.tmp
+kernel/config.aphro.tmp
+kernel/targets.tmp
 
 # Per-developer files
 kernel/config.aphro
