@@ -32,3 +32,4 @@ kernel/targets.tmp
 
 # Per-developer files
 kernel/config.aphro
+aphrodite.code-workspace
