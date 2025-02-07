@@ -3,6 +3,11 @@
 #![warn(missing_docs)]
 #![feature(ptr_metadata)]
 #![feature(const_trait_impl)]
+#![feature(f128)]
+#![feature(ptr_alignment_type)]
+#![feature(allocator_api)]
+#![feature(slice_ptr_get)]
+#![feature(nonnull_provenance)]
 
 mod constants;
 mod util;
@@ -15,6 +20,13 @@ pub mod output;
 pub mod boot;
 pub mod psfont;
 pub mod display;
+pub mod cmdline;
+pub mod mem;
+
+#[macro_use]
+mod cfg;
+
+pub use cfg::*;
 
 #[allow(unused_imports)] // if there are no constants, then it gives a warning
 pub use constants::*;

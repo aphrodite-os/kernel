@@ -3,6 +3,10 @@
 (
     set -e
 
+    if [[ -n "$KERNEL_DIR" ]]; then
+        export KERNEL_DIR=$(readlink -e .)
+    fi
+
     DIR="${BASH_SOURCE%/*}"
     if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
 
@@ -34,7 +38,8 @@
     cd ../kernel
 
     for target in $TARGETS; do
-        cargo build --target "$target" --release -Zbuild-std --bin entrypoint
+        real_target=${!target}
+        cargo build --target "$real_target" --release -Zbuild-std --bin entrypoint_$target
     done
     # build the kernel's entrypoint
 

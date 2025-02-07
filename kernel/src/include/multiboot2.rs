@@ -1,5 +1,7 @@
 //! Definitions of structs for multiboot2 information. Mostly used during pre-userspace.
 
+use crate::boot::MemoryMapping;
+
 /// Used for Multiboot2 tags. This shouldn't be used after a [crate::boot::BootInfo] struct has been initalized, but it still can be used.
 #[repr(C)]
 #[derive(Clone)]
@@ -35,7 +37,7 @@ pub struct Module {
 
 /// One memory section provided by a Multiboot2 bootloader.
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct MemorySection {
     /// The base address of the section.
     pub base_addr: u64,
@@ -48,21 +50,19 @@ pub struct MemorySection {
     reserved: u32,
 }
 
-impl crate::boot::MemoryMapping for MemorySection {
-    fn get_type(&self) -> crate::boot::MemoryType {
-        match self.mem_type {
-            1 => crate::boot::MemoryType::Free,
-            2 => crate::boot::MemoryType::HardwareReserved,
-            3 => crate::boot::MemoryType::HardwareSpecific(3, false),
-            5 => crate::boot::MemoryType::Faulty,
-            _ => crate::boot::MemoryType::Reserved
+impl Into<crate::boot::MemoryMapping> for MemorySection {
+    fn into(self) -> crate::boot::MemoryMapping {
+        MemoryMapping {
+            mem_type: match self.mem_type {
+                1 => crate::boot::MemoryType::Free,
+                2 => crate::boot::MemoryType::HardwareReserved,
+                3 => crate::boot::MemoryType::HardwareSpecific(3, false),
+                5 => crate::boot::MemoryType::Faulty,
+                _ => crate::boot::MemoryType::Reserved
+            },
+            start: self.base_addr,
+            len: self.length
         }
-    }
-    fn get_start(&self) -> u64 {
-        self.base_addr
-    }
-    fn get_length(&self) -> u64 {
-        self.length
     }
 }
 
@@ -87,39 +87,33 @@ pub struct RawMemoryMap {
 pub struct MemoryMap {
     /// The version of the memory map. Should be disregarded as it's 0.
     pub version: u32, // currently is 0, future Multiboot2 versions may increment
-    /// Size of one entry(one [MemorySection] for Aphrodite)
+    /// Size of one entry(one [MemorySection] for Aphrodite's Multiboot2 support)
     pub entry_size: u32,
     /// All sections.
-    pub sections: &'static [MemorySection],
-
+    pub sections: &'static [crate::boot::MemoryMapping],
     /// Iterator's index.
     pub idx: usize,
 }
 
-impl crate::boot::MemoryMap for MemoryMap {}
-
-impl crate::boot::_MemoryMap for MemoryMap {
-    fn len(&self) -> usize {
-        self.sections.len()
+impl MemoryMap {
+    pub fn reset_iter(&mut self) {
+        self.idx = 0;
     }
-}
-
-impl core::ops::Index<usize> for MemoryMap {
-    type Output = dyn crate::boot::MemoryMapping;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.sections[index] as &'static dyn crate::boot::MemoryMapping
-    }
-}
-
-impl core::iter::Iterator for MemoryMap {
-    type Item = &'static dyn crate::boot::MemoryMapping;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.idx += 1;
-        if self.sections.len()<=self.idx-1 {
-            return None;
+    pub fn mem_size(&mut self) -> u64 {
+        let curr_idx = self.idx;
+        self.reset_iter();
+        let mut out = 0u64;
+        for ele in self.sections {
+            if ele.mem_type == crate::boot::MemoryType::Free {
+                out += ele.len;
+            } else if let crate::boot::MemoryType::HardwareSpecific(_, free) = ele.mem_type {
+                if free {
+                    out += ele.len;
+                }
+            }
         }
-        Some(&self.sections[self.idx-1])
+        self.idx = curr_idx;
+        out
     }
 }
 

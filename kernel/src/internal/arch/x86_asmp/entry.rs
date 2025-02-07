@@ -1,4 +1,5 @@
 //! The entrypoint to the kernel; placed before all other code.
+#![cfg(any(target_arch = "x86"))]
 #![no_std]
 #![no_main]
 #![warn(missing_docs)]
@@ -13,6 +14,7 @@ use aphrodite::multiboot2::{FramebufferInfo, MemoryMap, MemorySection, RawMemory
 use aphrodite::arch::output::*;
 use aphrodite::arch::egatext as egatext;
 use aphrodite::output::*;
+use aphrodite::display::COLOR_DEFAULT;
 
 #[cfg(not(CONFIG_DISABLE_MULTIBOOT2_SUPPORT))]
 #[unsafe(link_section = ".multiboot2")]
@@ -152,7 +154,14 @@ extern "C" fn _start() -> ! {
                                 sections: &*core::ptr::from_raw_parts((&(*rawmemorymap).sections[0]) as &MemorySection, (*rawmemorymap).sections.len()),
                                 idx: 0
                             };
-                            BI.memory_map = Some(&MM);
+                            let mm2 = aphrodite::boot::MemoryMap {
+                                len: MM.sections.len() as u64,
+                                size_pages: 1,
+                                page_size: MM.mem_size(),
+                                sections: MM.sections,
+                                idx: 0
+                            };
+                            BI.memory_map = Some(mm2);
                         },
                         2 => { // Bootloader name
                             if current_tag.tag_len < 8 { // Unexpected size, something is probably up
@@ -248,9 +257,9 @@ extern "C" fn _start() -> ! {
             
             sdebugsln("Beginning output to screen...");
 
-            let ega: &dyn aphrodite::TextDisplay = &framebuffer_info;
+            let ega: &dyn aphrodite::display::TextDisplay = &framebuffer_info;
             framebuffer_info.disable_cursor();
-            ega.clear_screen(aphrodite::COLOR_DEFAULT);
+            ega.clear_screen(COLOR_DEFAULT);
             toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
             toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
             toutputsln("Testing EGA Text framebuffer...", ega).unwrap();

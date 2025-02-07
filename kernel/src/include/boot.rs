@@ -5,7 +5,7 @@
 /// except for memory with type [MemoryType::Free]
 /// or [MemoryType::HardwareSpecific] memory with
 /// the boolean argument set.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum MemoryType {
     /// Free RAM with no use.
     Free,
@@ -23,27 +23,76 @@ pub enum MemoryType {
     /// whether memory can be allocated in this region.
     HardwareSpecific(u32, bool),
     /// Flash/semi-permanent memory. Generally used in embedded systems.
-    Permanent
+    Permanent,
 }
 
 /// A single memory mapping for [MemoryMap].
-pub trait MemoryMapping {
+#[derive(Clone, Copy)]
+pub struct MemoryMapping {
     /// Returns the type of the memory.
-    fn get_type(&self) -> MemoryType;
+    pub mem_type: MemoryType,
     /// Returns the beginning of the memory.
-    fn get_start(&self) -> u64;
+    pub start: u64,
     /// Returns the length of the memory.
-    fn get_length(&self) -> u64;
+    pub len: u64,
 }
 
-/// Memory mapping.
-pub trait _MemoryMap: core::iter::Iterator<Item = &'static dyn MemoryMapping> + core::ops::Index<usize, Output = dyn MemoryMapping> {
-    /// Returns the number of [MemoryMapping]s in the MemoryMap. This is total, not remainder.
-    fn len(&self) -> usize;
+#[derive(Clone, Copy)]
+pub struct MemoryMap {
+    pub len: u64,
+    pub size_pages: u64,
+    pub page_size: u64,
+
+    /// All sections.
+    pub sections: &'static [MemoryMapping],
+
+    /// Iterator's index.
+    pub idx: usize,
 }
 
-/// Memory mapping. Used so that we can downcast.
-pub trait MemoryMap: _MemoryMap + core::any::Any {}
+impl MemoryMap {
+    pub fn len(&self) -> u64 {
+        self.sections.len() as u64
+    }
+    pub fn reset_iter(&mut self) {
+        self.idx = 0;
+    }
+    pub fn mem_size(&mut self) -> u64 {
+        let curr_idx = self.idx;
+        self.reset_iter();
+        let mut out = 0u64;
+        for ele in self.sections {
+            if ele.mem_type == crate::boot::MemoryType::Free {
+                out += ele.len;
+            } else if let crate::boot::MemoryType::HardwareSpecific(_, free) = ele.mem_type {
+                if free {
+                    out += ele.len;
+                }
+            }
+        }
+        self.idx = curr_idx;
+        out
+    }
+}
+
+impl core::ops::Index<usize> for MemoryMap {
+    type Output = MemoryMapping;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.sections[index]
+    }
+}
+
+impl core::iter::Iterator for MemoryMap {
+    type Item = MemoryMapping;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.idx += 1;
+        if self.sections.len()<=self.idx-1 {
+            return None;
+        }
+        Some(self.sections[self.idx-1].into())
+    }
+}
 
 /// Bootloader-independent information.
 #[derive(Clone)]
@@ -51,9 +100,9 @@ pub struct BootInfo<'a> {
     /// The commandline of the kernel.
     /// See <https://aphrodite-os.github.io/book/command-line.html> for the format.
     pub cmdline: Option<&'static str>,
-    
+
     /// The memory map provided by the bootloader. If None, the kernel will attempt to generate it.
-    pub memory_map: Option<&'a dyn MemoryMap>,
+    pub memory_map: Option<MemoryMap>,
 
     /// The name of the bootloader(for example, "GRUB 2.12").
     pub bootloader_name: Option<&'static str>,
