@@ -220,18 +220,18 @@ extern "C" fn _start() -> ! {
                     ptr = (ptr + current_tag.tag_len as usize + 7) & !7;
                     if ptr>end_addr {
                         cfg_match! {
-                            cfg(all(CONFIG_PREUSER_ERROR_ON_INVALID_LENGTH = "true", CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH = "false")) => {
+                            all(CONFIG_PREUSER_ERROR_ON_INVALID_LENGTH = "true", CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH = "false") => {
                                 serrorsln("Current tag length would put pointer out-of-bounds; CONFIG_PREUSER_ERROR_ON_INVALID_LENGTH is set, continuing");
                             }
-                            cfg(all(CONFIG_PREUSER_WARN_ON_INVALID_LENGTH = "true", CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH = "false")) => {
+                            all(CONFIG_PREUSER_WARN_ON_INVALID_LENGTH = "true", CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH = "false") => {
                                 swarningsln("Current tag length would put pointer out-of-bounds; CONFIG_PREUSER_WARN_ON_INVALID_LENGTH is set, continuing");
                             }
                         }
                         cfg_match! {
-                            cfg(not(CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH = "false")) => {
+                            not(CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH = "false") => {
                                 panic!("current tag length would put pointer out-of-bounds")
                             }
-                            cfg(CONFIG_PREUSER_EXIT_LOOP_ON_INVALID_LENGTH = "true") => {
+                            CONFIG_PREUSER_EXIT_LOOP_ON_INVALID_LENGTH = "true" => {
                                 sinfos("Exiting loop as current tag length would put pointer out-of-bounds ");
                                 sinfosnpln("and CONFIG_PREUSER_EXIT_LOOP_ON_INVALID_LENGTH is set");
                                 break;
@@ -263,7 +263,7 @@ extern "C" fn _start() -> ! {
             sdebugs("Framebuffer bpp: ");
             sdebugbnpln(&aphrodite::u8_as_u8_slice(framebuffer_info.bpp));
             
-            sdebugsln("Beginning output to screen...");
+            sdebugsln("Beginning test output to screen...");
 
             let ega: &dyn aphrodite::display::TextDisplay = &framebuffer_info;
             framebuffer_info.disable_cursor();
@@ -272,11 +272,11 @@ extern "C" fn _start() -> ! {
             toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
             toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
 
-            aphrodite::indep_boot_entry::indep_boot_entry(Some(ega), &BI);
+            aphrodite::indep_boot_entry::IndepBootEntry(Some(ega), &BI);
         }
     }
 
-    aphrodite::indep_boot_entry::indep_boot_entry(None, &BI);
+    aphrodite::indep_boot_entry::IndepBootEntry(None, &BI);
 }
 
 #[unsafe(link_section = ".panic")]

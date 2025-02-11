@@ -4,6 +4,7 @@
     "rust-analyzer.linkedProjects": [
         "kernel/Cargo.toml",
         "kernel/aphrodite_proc_macros/Cargo.toml",
-        "kernel/aphrodite_common/Cargo.toml"
+        "kernel/aphrodite_common/Cargo.toml",
+        "user/Cargo.toml"
     ],
 }

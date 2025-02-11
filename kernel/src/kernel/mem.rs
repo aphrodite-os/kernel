@@ -1,15 +1,22 @@
 //! Memory allocation.
 
 use core::{
-    alloc::{Allocator, GlobalAlloc}, fmt::Debug, num::NonZero, ops::Range, ptr::{null_mut, NonNull}
+    alloc::{Allocator, GlobalAlloc},
+    fmt::Debug,
+    mem::MaybeUninit,
+    num::NonZero,
+    ops::Range,
+    ptr::{NonNull, null_mut},
 };
 
-use crate::boot::MemoryType;
+use crate::boot::{MemoryMap, MemoryType};
+
+use aphrodite_proc_macros::*;
 
 #[derive(Clone, Copy)]
 struct Allocation {
     /// Whether this allocation is used. This is used so that the
-    /// entire allocation table doesn't need to be shifted back 
+    /// entire allocation table doesn't need to be shifted back
     /// on every allocation.
     pub used: bool,
     /// The starting address of the allocation.
@@ -50,10 +57,46 @@ impl Iterator for AllocationIter {
         crate::arch::output::sdebugsln("Providing allocation from iterator");
 
         Some(&unsafe {
-            *((self.ptr as usize + (size_of::<Allocation>() * (self.idx as usize-1)))
+            *((self.ptr as usize + (size_of::<Allocation>() * (self.idx as usize - 1)))
                 as *const Allocation)
         } as *const Allocation as *mut Allocation)
     }
+}
+
+static mut ALLOCATOR: MaybeUninit<MemoryMapAlloc<'static>> = MaybeUninit::uninit();
+static mut ALLOCATOR_MEMMAP: MaybeUninit<MemoryMap> = MaybeUninit::uninit();
+static mut ALLOCATOR_INITALIZED: bool = false;
+
+#[kernel_item(MemMapAlloc)]
+fn get_allocator() -> Option<&'static MemoryMapAlloc<'static>> {
+    if unsafe { ALLOCATOR_INITALIZED } {
+        #[allow(static_mut_refs)]
+        return Some(unsafe { ALLOCATOR.assume_init_ref() });
+    } else {
+        return None;
+    }
+}
+
+#[kernel_item(MemMapAllocInit)]
+fn memory_map_alloc_init(
+    memmap: crate::boot::MemoryMap,
+) -> Result<(), crate::Error<'static>> {
+    #[allow(static_mut_refs)]
+    unsafe {
+        ALLOCATOR_MEMMAP.write(memmap);
+    }
+    #[allow(static_mut_refs)]
+    let alloc = MemoryMapAlloc::new(unsafe { ALLOCATOR_MEMMAP.assume_init_mut() })?;
+
+    #[allow(static_mut_refs)]
+    unsafe {
+        ALLOCATOR.write(alloc);
+    }
+    unsafe {
+        ALLOCATOR_INITALIZED = true;
+    }
+
+    Ok(())
 }
 
 /// A implementation of a physical memory allocator that uses a [crate::boot::MemoryMap].
@@ -84,7 +127,12 @@ const EXTEND_ALLOCATION_OTHER_ALLOCATION: i16 = -6;
 impl<'a> Debug for MemoryMapAlloc<'a> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("MemoryMapAlloc with ")?;
-        f.write_str(core::str::from_utf8(&crate::u64_as_u8_slice(unsafe { *self.allocationheader }.num_allocations)).unwrap())?;
+        f.write_str(
+            core::str::from_utf8(&crate::u64_as_u8_slice(
+                unsafe { *self.allocationheader }.num_allocations,
+            ))
+            .unwrap(),
+        )?;
         f.write_str(" allocations")?;
         Ok(())
     }
@@ -115,7 +163,9 @@ impl<'a> MemoryMapAlloc<'a> {
                     (),
                 );
                 out.allocations = core::ptr::from_raw_parts_mut(
-                    core::ptr::without_provenance_mut::<()>(mapping.start as usize+size_of::<AllocationHeader>()),
+                    core::ptr::without_provenance_mut::<()>(
+                        mapping.start as usize + size_of::<AllocationHeader>(),
+                    ),
                     (),
                 );
                 out.max_allocations_size = mapping.len;
@@ -126,7 +176,9 @@ impl<'a> MemoryMapAlloc<'a> {
                         (),
                     );
                     out.allocations = core::ptr::from_raw_parts_mut(
-                        core::ptr::without_provenance_mut::<()>(mapping.start as usize+size_of::<AllocationHeader>()),
+                        core::ptr::without_provenance_mut::<()>(
+                            mapping.start as usize + size_of::<AllocationHeader>(),
+                        ),
                         (),
                     );
                     out.max_allocations_size = mapping.len;
@@ -149,7 +201,7 @@ impl<'a> MemoryMapAlloc<'a> {
                 used: true,
                 addr: out.allocations as usize as u64,
                 len: (size_of::<Allocation>() * 32) as u64,
-                num_allocations: 1
+                num_allocations: 1,
             }
         }
         Ok(out)
@@ -182,10 +234,10 @@ impl<'a> MemoryMapAlloc<'a> {
 
         let num_allocations = unsafe { *self.allocationheader }.num_allocations;
 
-        if unsafe { *self.allocations }.len
-            < (size_of::<Allocation>() as u64 * (num_allocations))
-        {
-            if unsafe { *self.allocationheader }.len + size_of::<Allocation>() as u64 >= self.max_allocations_size {
+        if unsafe { *self.allocations }.len < (size_of::<Allocation>() as u64 * (num_allocations)) {
+            if unsafe { *self.allocationheader }.len + size_of::<Allocation>() as u64
+                >= self.max_allocations_size
+            {
                 return Err(crate::Error::new(
                     "not enough space for another allocation",
                     TOO_MANY_ALLOCATIONS,
@@ -202,7 +254,7 @@ impl<'a> MemoryMapAlloc<'a> {
         let new_alloc = (self.allocations as usize
             + (size_of::<Allocation>() * (num_allocations) as usize))
             as *const Allocation as *mut Allocation;
-            
+
         unsafe { (*new_alloc) = allocation }
 
         Ok(())
@@ -266,7 +318,9 @@ impl<'a> MemoryMapAlloc<'a> {
 
     /// Check to see if any allocations contain the given address. Returns true if so.
     fn check_addr(&self, addr: u64) -> bool {
-        if addr >= (self.allocationheader as u64) && addr < (self.allocationheader as u64+unsafe { *self.allocationheader }.len) {
+        if addr >= (self.allocationheader as u64)
+            && addr < (self.allocationheader as u64 + unsafe { *self.allocationheader }.len)
+        {
             return true;
         }
         for ele in self.allocations_iter() {
@@ -345,11 +399,17 @@ unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
                 allocatable = alloc;
             }
             if allocatable {
-                addr = mapping.start+mapping.len-layout.size() as u64;
-                while self.check_range(addr..addr+layout.size() as u64) && (addr as usize % layout.align() != 0) && addr >= mapping.start {
-                    addr -= layout.size() as u64/crate::cfg_int!("CONFIG_ALLOC_PRECISION", u64);
+                addr = mapping.start + mapping.len - layout.size() as u64;
+                while self.check_range(addr..addr + layout.size() as u64)
+                    && (addr as usize % layout.align() != 0)
+                    && addr >= mapping.start
+                {
+                    addr -= layout.size() as u64 / crate::cfg_int!("CONFIG_ALLOC_PRECISION", u64);
                 }
-                if (!self.check_range(addr..addr+layout.size() as u64)) && (addr as usize % layout.align() == 0) && addr >= mapping.start {
+                if (!self.check_range(addr..addr + layout.size() as u64))
+                    && (addr as usize % layout.align() == 0)
+                    && addr >= mapping.start
+                {
                     break;
                 }
                 continue;
@@ -364,7 +424,11 @@ unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
             }
             return Err(core::alloc::AllocError {});
         }
-        if let Err(err) = self.add_allocation(Allocation { used: true, addr, len: layout.size() as u64 }) {
+        if let Err(err) = self.add_allocation(Allocation {
+            used: true,
+            addr,
+            len: layout.size() as u64,
+        }) {
             unsafe { LAST_MEMMAP_ERR = Err(err) }
             return Err(core::alloc::AllocError {});
         }
@@ -387,7 +451,9 @@ unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
             }
             return;
         }
-        crate::arch::output::sdebugbln(&crate::u64_as_u8_slice(unsafe { *self.allocationheader }.num_allocations));
+        crate::arch::output::sdebugbln(&crate::u64_as_u8_slice(
+            unsafe { *self.allocationheader }.num_allocations,
+        ));
         for allocation in self.allocations_iter() {
             crate::arch::output::sdebugsln("Allocation");
             let alloc = unsafe { *allocation }.clone();
@@ -401,7 +467,12 @@ unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
             }
         }
         // Memory not allocated, something is up, this is put after the loop to prevent a costly call to check_addr
-        unsafe { LAST_MEMMAP_ERR = Err(crate::Error::new("memory not allocated", MEMORY_NOT_ALLOCATED)) }
+        unsafe {
+            LAST_MEMMAP_ERR = Err(crate::Error::new(
+                "memory not allocated",
+                MEMORY_NOT_ALLOCATED,
+            ))
+        }
         return;
     }
 }
