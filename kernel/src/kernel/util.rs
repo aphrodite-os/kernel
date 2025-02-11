@@ -90,56 +90,74 @@ pub const fn u64_as_u8_slice(mut value: u64) -> [u8; 20] {
     buf
 }
 
-/// Converts an &mut \[u8] to a i16. `value` is clobbered.
-pub fn str_as_i16(mut value: &mut [u8]) -> i16 {
+/// Converts an &mut \[u8] to a i16.
+pub fn str_as_i16(mut value: &[u8]) -> i16 {
     let mut out = 0i16;
     let negative = core::str::from_utf8(value).unwrap().starts_with("-");
     if negative {
-        value = &mut value[1..];
+        value = &value[1..];
     }
-    value.reverse();
     for byte in value {
         let byte = *byte;
-        if byte == b'_' {
+        if byte < b'0' || byte > b'9' {
             continue;
         }
         out *= 10;
         out += (byte-b'0') as i16;
     }
-    if negative {
-        out = -out;
+
+    let mut reversed = 0;
+
+    while out != 0 {
+        reversed = reversed * 10 + out % 10;
+        out /= 10;
     }
-    out
+
+    reversed
 }
 
-/// Converts an &mut \[u8] to a u32. `value` is clobbered.
-pub fn str_as_u32(value: &mut [u8]) -> u32 {
+/// Converts an &mut \[u8] to a u32.
+pub fn str_as_u32(value: &[u8]) -> u32 {
     let mut out = 0u32;
-    value.reverse();
     for byte in value {
         let byte = *byte;
-        if byte == b'_' {
+        if byte < b'0' || byte > b'9' {
             continue;
         }
         out *= 10;
         out += (byte-b'0') as u32;
     }
-    out
+
+    let mut reversed = 0;
+
+    while out != 0 {
+        reversed = reversed * 10 + out % 10;
+        out /= 10;
+    }
+
+    reversed
 }
 
-/// Converts an &mut \[u8] to a u128. `value` is clobbered.
-pub fn str_as_u128(value: &mut [u8]) -> u128 {
+/// Converts an &mut \[u8] to a u128.
+pub fn str_as_u128(value: &[u8]) -> u128 {
     let mut out = 0u128;
-    value.reverse();
     for byte in value {
         let byte = *byte;
-        if byte == b'_' {
+        if byte < b'0' || byte > b'9' {
             continue;
         }
         out *= 10;
         out += (byte-b'0') as u128;
     }
-    out
+
+    let mut reversed = 0;
+
+    while out != 0 {
+        reversed = reversed * 10 + out % 10;
+        out /= 10;
+    }
+
+    reversed
 }
 
 /// Converts an &mut \[u8] to a u64.

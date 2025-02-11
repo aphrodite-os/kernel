@@ -14,7 +14,7 @@ pub const COLOR_BLACK: Color = (0, true);
 pub const COLOR_DEFAULT: Color = (1, true);
 
 /// Some form of display that can be written to with text.
-pub trait TextDisplay {
+pub trait TextDisplay: core::fmt::Write {
     /// Writes a single character to the specified position.
     fn write_char(&self, pos: (u32, u32), char: u8, color: Color) -> Result<(), crate::Error<'static>>;
     /// Gets the size of the screen.

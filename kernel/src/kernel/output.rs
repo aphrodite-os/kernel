@@ -3,6 +3,7 @@
 use paste::paste;
 use crate::display::COLOR_DEFAULT;
 
+/// The position to output stuff to.
 static mut OUTPUT_TERM_POSITION: (u32, u32) = (0, 0);
 
 macro_rules! message_funcs {

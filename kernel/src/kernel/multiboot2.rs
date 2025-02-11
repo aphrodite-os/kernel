@@ -91,17 +91,11 @@ pub struct MemoryMap {
     pub entry_size: u32,
     /// All sections.
     pub sections: &'static [crate::boot::MemoryMapping],
-    /// Iterator's index.
-    pub idx: usize,
 }
 
 impl MemoryMap {
-    pub fn reset_iter(&mut self) {
-        self.idx = 0;
-    }
+    /// The size of allocatable memory in bytes.
     pub fn mem_size(&mut self) -> u64 {
-        let curr_idx = self.idx;
-        self.reset_iter();
         let mut out = 0u64;
         for ele in self.sections {
             if ele.mem_type == crate::boot::MemoryType::Free {
@@ -112,7 +106,6 @@ impl MemoryMap {
                 }
             }
         }
-        self.idx = curr_idx;
         out
     }
 }

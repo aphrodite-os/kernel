@@ -25,6 +25,13 @@ pub const ERR_INVALID_X: i16 = -1;
 /// Returned when the provided position is invalid in the Y direction.
 pub const ERR_INVALID_Y: i16 = -2;
 
+impl core::fmt::Write for FramebufferInfo {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        crate::output::toutputsnp(s, self).unwrap();
+        Ok(())
+    }
+}
+
 impl crate::display::TextDisplay for FramebufferInfo {
     /// Writes a character to the screen.
     fn write_char(&self, mut pos: (u32, u32), char: u8, color: Color) -> Result<(), crate::Error<'static>> {

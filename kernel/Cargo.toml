@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 paste = "1.0.15"
+aphrodite_proc_macros = { path = "./aphrodite_proc_macros"}
 
 [profile.release]
 opt-level = "z"
@@ -15,15 +16,11 @@ panic = "abort"
 
 [[bin]]
 name = "entrypoint_x86"
-path = "src/internal/arch/x86_asmp/entry.rs"
-
-[[bin]]
-name = "main"
-path = "src/internal/main.rs"
+path = "src/arch_boot_entry/x86.rs"
 
 [lib]
 name = "aphrodite"
-path = "src/include/mod.rs"
+path = "src/kernel/mod.rs"
 
 [[test]]
 name = "test_aphrodite"

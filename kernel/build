@@ -3,9 +3,8 @@
 (
     set -e
 
-    if [[ -n "$KERNEL_DIR" ]]; then
-        export KERNEL_DIR=$(readlink -e .)
-    fi
+    
+    export KERNEL_DIR=$(readlink -e .)
 
     DIR="${BASH_SOURCE%/*}"
     if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
@@ -40,24 +39,22 @@
     for target in $TARGETS; do
         real_target=${!target}
         cargo build --target "$real_target" --release -Zbuild-std --bin entrypoint_$target
+        cp target/i686-unknown-none/release/entrypoint_$target kernel.flat
+
+        if [[ "$CONFIG_BUILD_GRUB" = "true" ]]; then
+            rm -rf grub aphrodite-grub.iso
+            if [[ "$target" = "x86" ]]; then
+                cp -r ./grub_template ./grub
+
+                cp kernel.flat ./grub/boot/aphrodite.kernel
+
+                sed -i "s@%{VERSION}@$VERSION@g" ./grub/boot/grub/grub.cfg
+
+                grub-mkrescue -o aphrodite-grub.iso grub
+                cp aphrodite-grub.iso aphrodite.iso
+            fi
+        fi
     done
-    # build the kernel's entrypoint
-
-    cp target/i686-unknown-none/release/entrypoint kernel.flat
-    # copy it out
-
-    rm -rf grub aphrodite.iso aphrodite-grub.iso
-
-    if [[ $CONFIG_BUILD_GRUB = "true" ]]; then
-        cp -r ./grub_template ./grub
-
-        cp kernel.flat ./grub/boot/aphrodite.kernel
-
-        sed -i "s@%{VERSION}@$VERSION@g" ./grub/boot/grub/grub.cfg
-
-        grub-mkrescue -o aphrodite-grub.iso grub
-        cp aphrodite-grub.iso aphrodite.iso
-    fi
 
     reset_version_vars
 )

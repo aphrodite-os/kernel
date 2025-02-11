@@ -5,3 +5,4 @@ magic_break: enabled=1
 
 ata0-master: type=cdrom, path=../kernel/aphrodite.iso, status=inserted
 boot: cdrom
+memory: guest=512, host=512

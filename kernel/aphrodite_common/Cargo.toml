@@ -1,0 +1,12 @@
+[package]
+name = "aphrodite_common"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+path = "../src/common/mod.rs"
+
+[dependencies]
+strum = "0.27.0"
+strum_macros = "0.27.0"
+syn = "2.0.98"

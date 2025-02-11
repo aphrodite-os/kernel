@@ -7,9 +7,12 @@
 #![allow(static_mut_refs)]
 #![feature(ptr_metadata)]
 #![feature(cfg_match)]
+#![feature(formatting_options)]
 
 use core::{arch::asm, ffi::CStr, panic::PanicInfo};
-use aphrodite::boot::BootInfo;
+use core::fmt::Debug;
+
+use aphrodite::boot::{BootInfo, MemoryMapping};
 use aphrodite::multiboot2::{FramebufferInfo, MemoryMap, MemorySection, RawMemoryMap, RootTag, Tag};
 use aphrodite::arch::output::*;
 use aphrodite::arch::egatext as egatext;
@@ -40,7 +43,6 @@ static mut MM: MemoryMap = MemoryMap {
     entry_size: 0,
     version: 0,
     sections: &[],
-    idx: 0,
 };
 
 static mut FBI: aphrodite::arch::egatext::FramebufferInfo = aphrodite::arch::egatext::FramebufferInfo {
@@ -142,17 +144,23 @@ extern "C" fn _start() -> ! {
                             if current_tag.tag_len < 16 { // Unexpected size, something is probably up
                                 panic!("size of memory map tag < 16");
                             }
-                            let rawmemorymap: *const RawMemoryMap = core::ptr::from_raw_parts(
-                                ptr as *const u8, (current_tag.tag_len / *((ptr + 8usize) as *const u32)) as usize
+                            let rawmemorymap: *mut RawMemoryMap = core::ptr::from_raw_parts_mut(
+                                ptr as *mut u8, (current_tag.tag_len / *((ptr + 8usize) as *const u32)) as usize
                             );
                             // The end result of the above is creating a *const RawMemoryMap that has the same address as current_tag
                             // and has all of the [aphrodite::multiboot2::MemorySection]s for the memory map
 
+                            let memorysections: &'static mut [aphrodite::multiboot2::MemorySection] = &mut *core::ptr::from_raw_parts_mut((&mut (*rawmemorymap).sections[0]) as &mut MemorySection, (*rawmemorymap).sections.len());
+                            // Above is a bit hard to understand, but what it does is transmute rawmemorymap's sections into a pointer to those sections.
+
+                            for ele in &mut *memorysections {
+                                (*ele) = core::mem::transmute(Into::<MemoryMapping>::into(*ele))
+                            }
+
                             MM = MemoryMap {
                                 version: (*rawmemorymap).entry_version,
                                 entry_size: (*rawmemorymap).entry_size,
-                                sections: &*core::ptr::from_raw_parts((&(*rawmemorymap).sections[0]) as &MemorySection, (*rawmemorymap).sections.len()),
-                                idx: 0
+                                sections: core::mem::transmute(memorysections),
                             };
                             let mm2 = aphrodite::boot::MemoryMap {
                                 len: MM.sections.len() as u64,
@@ -264,17 +272,19 @@ extern "C" fn _start() -> ! {
             toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
             toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
 
-            aphrodite::_entry::_entry(Some(ega), &BI);
+            aphrodite::indep_boot_entry::indep_boot_entry(Some(ega), &BI);
         }
     }
 
-    aphrodite::_entry::_entry(None, &BI);
+    aphrodite::indep_boot_entry::indep_boot_entry(None, &BI);
 }
 
 #[unsafe(link_section = ".panic")]
 #[panic_handler]
 #[cfg(not(CONFIG_HALT_ON_PANIC = "false"))]
 fn halt_on_panic(info: &PanicInfo) -> ! {
+    use core::fmt::FormattingOptions;
+
     if info.location().is_some() {
         sfatals("Panic at ");
         sfatalsnp(info.location().unwrap().file());
@@ -286,10 +296,8 @@ fn halt_on_panic(info: &PanicInfo) -> ! {
     } else {
         sfatals("Panic: ");
     }
-    let message = info.message().as_str().unwrap_or("");
-    if message != "" {
-        sfatalsnpln(message);
-    }
+    let mut formatter =  FormattingOptions::new().create_formatter(unsafe { &mut FBI });
+    let _ = info.message().fmt(&mut formatter);
     aphrodite::arch::interrupts::disable_interrupts();
     unsafe {
         asm!("hlt", options(noreturn));
@@ -314,6 +322,8 @@ fn spin_on_panic(info: &PanicInfo) -> ! {
     let message = info.message().as_str().unwrap_or("");
     if message != "" {
         sfatalsnpln(message);
+    } else {
+        sfatalsnp("\n");
     }
     aphrodite::arch::interrupts::disable_interrupts();
     loop {}

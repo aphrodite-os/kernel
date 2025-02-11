@@ -2,6 +2,8 @@
     "rust-analyzer.cargo.allTargets": false,
     "rust-analyzer.check.allTargets": false,
     "rust-analyzer.linkedProjects": [
-        "kernel/Cargo.toml"
-    ]
+        "kernel/Cargo.toml",
+        "kernel/aphrodite_proc_macros/Cargo.toml",
+        "kernel/aphrodite_common/Cargo.toml"
+    ],
 }

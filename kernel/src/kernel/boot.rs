@@ -9,7 +9,7 @@
 pub enum MemoryType {
     /// Free RAM with no use.
     Free,
-    /// RAM used by the kernel
+    /// RAM where the kernel is loaded.
     Kernel,
     /// Reserved by something.
     Reserved,
@@ -26,6 +26,31 @@ pub enum MemoryType {
     Permanent,
 }
 
+impl MemoryType {
+    /// Outputs the contents of this to the debug port with [crate::arch::output::sdebugsnp].
+    pub fn output(&self) {
+        match self {
+            MemoryType::Free => crate::arch::output::sdebugsnp("Free"),
+            MemoryType::Faulty => crate::arch::output::sdebugsnp("Faulty RAM"),
+            MemoryType::HardwareReserved => crate::arch::output::sdebugsnp("Hardware Reserved"),
+            MemoryType::HardwareSpecific(val, allocatable) => {
+                    crate::arch::output::sdebugsnp("Hardware specific ");
+                    crate::arch::output::sdebugbnp(&crate::u32_as_u8_slice(*val));
+                    if *allocatable {
+                        crate::arch::output::sdebugsnp(" allocatable");
+                    } else {
+                        crate::arch::output::sdebugsnp(" unallocatable");
+                    }
+                    
+            },
+            MemoryType::Kernel => crate::arch::output::sdebugsnp("Kernel loaded"),
+            MemoryType::Permanent => crate::arch::output::sdebugsnp("Flash"),
+            MemoryType::Reserved => crate::arch::output::sdebugsnp("Reserved"),
+            MemoryType::Unknown => crate::arch::output::sdebugsnp("Unknown"),
+        }
+    }
+}
+
 /// A single memory mapping for [MemoryMap].
 #[derive(Clone, Copy)]
 pub struct MemoryMapping {
@@ -37,10 +62,26 @@ pub struct MemoryMapping {
     pub len: u64,
 }
 
+impl MemoryMapping {
+    /// Converts this MemoryMapping to [core::fmt::Arguments].
+    pub fn output(&self) {
+        crate::arch::output::sdebugs("Memory type: ");
+        self.mem_type.output();
+        crate::arch::output::sdebugsnp("; Start: ");
+        crate::arch::output::sdebugbnp(&crate::u64_as_u8_slice(self.start));
+        crate::arch::output::sdebugsnp("; Length: ");
+        crate::arch::output::sdebugbnp(&crate::u64_as_u8_slice(self.len));
+    }
+}
+
+/// A memory map outputted by the bootloader or by the kernel.
 #[derive(Clone, Copy)]
 pub struct MemoryMap {
+    /// The number of [MemoryMapping]s in this MemoryMap.
     pub len: u64,
+    /// The size of memory in pages.
     pub size_pages: u64,
+    /// The size of one page.
     pub page_size: u64,
 
     /// All sections.
@@ -51,12 +92,11 @@ pub struct MemoryMap {
 }
 
 impl MemoryMap {
-    pub fn len(&self) -> u64 {
-        self.sections.len() as u64
-    }
+    /// Resets the index of the iterator (sets self.idx to 0).
     pub fn reset_iter(&mut self) {
         self.idx = 0;
     }
+    /// The size of allocatable memory in bytes.
     pub fn mem_size(&mut self) -> u64 {
         let curr_idx = self.idx;
         self.reset_iter();
@@ -87,10 +127,11 @@ impl core::iter::Iterator for MemoryMap {
     type Item = MemoryMapping;
     fn next(&mut self) -> Option<Self::Item> {
         self.idx += 1;
-        if self.sections.len()<=self.idx-1 {
+        if self.sections.len() <= self.idx - 1 {
+            self.reset_iter();
             return None;
         }
-        Some(self.sections[self.idx-1].into())
+        Some(self.sections[self.idx - 1].into())
     }
 }
 

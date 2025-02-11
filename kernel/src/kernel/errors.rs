@@ -17,10 +17,11 @@ impl<'a> Error<'a> {
 }
 
 impl Error<'_> {
+    /// Display the contents of the error on a [TextDisplay].
     pub fn display_np(&self, display: &dyn TextDisplay) {
-        crate::output::terrorbnp(&crate::i16_as_u8_slice(self.code), display);
-        crate::output::terrorsnp(": ", display);
-        crate::output::terrorsnpln(self.message, display);
+        crate::output::terrorbnp(&crate::i16_as_u8_slice(self.code), display).unwrap();
+        crate::output::terrorsnp(": ", display).unwrap();
+        crate::output::terrorsnpln(self.message, display).unwrap();
     }
 }
 
