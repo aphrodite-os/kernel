@@ -8,19 +8,23 @@
 #![feature(ptr_alignment_type)]
 #![feature(allocator_api)]
 #![feature(slice_ptr_get)]
+#![feature(stmt_expr_attributes)]
 #![feature(nonnull_provenance)]
 #![feature(min_specialization)]
+#![feature(ptr_as_uninit)]
 #![allow(internal_features)]
 #![feature(core_intrinsics)]
 // tidy-alphabetical-end
 
-pub mod indep_boot_entry;
+extern crate alloc;
+
 pub mod arch;
 pub mod boot;
 pub mod cmdline;
 mod constants;
 pub mod display;
 mod errors;
+pub mod indep_boot_entry;
 pub mod mem;
 pub mod multiboot2;
 pub mod output;

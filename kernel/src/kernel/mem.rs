@@ -63,7 +63,8 @@ impl Iterator for AllocationIter {
     }
 }
 
-static mut ALLOCATOR: MaybeUninit<MemoryMapAlloc<'static>> = MaybeUninit::uninit();
+#[global_allocator]
+static mut ALLOCATOR: MaybeMemoryMapAlloc<'static> = MaybeMemoryMapAlloc::new(None);
 static mut ALLOCATOR_MEMMAP: MaybeUninit<MemoryMap> = MaybeUninit::uninit();
 static mut ALLOCATOR_INITALIZED: bool = false;
 
@@ -86,9 +87,9 @@ fn memory_map_alloc_init(memmap: crate::boot::MemoryMap) -> Result<(), crate::Er
     #[allow(static_mut_refs)]
     let alloc = MemoryMapAlloc::new(unsafe { ALLOCATOR_MEMMAP.assume_init_mut() })?;
 
-    #[allow(static_mut_refs)]
     unsafe {
-        ALLOCATOR.write(alloc);
+        #[allow(static_mut_refs)]
+        ALLOCATOR.add_alloc(alloc);
     }
     unsafe {
         ALLOCATOR_INITALIZED = true;
@@ -347,6 +348,101 @@ pub const FREE_MEMORY_UNAVAILABLE: i16 = -1;
 
 /// Error returned when memory wasn't allocated.
 pub const MEMORY_NOT_ALLOCATED: i16 = -7;
+
+/// Error returned when the [MaybeMemoryMapAlloc] doesn't have
+/// an initalized allocator.
+pub const MAYBE_MEMORY_MAP_ALLOC_UNINITALIZED: i16 = -8;
+
+struct MaybeMemoryMapAlloc<'a> {
+    alloc: MaybeUninit<MemoryMapAlloc<'a>>,
+    initalized: bool
+}
+impl<'a> MaybeMemoryMapAlloc<'a> {
+    const fn new(alloc: Option<MemoryMapAlloc<'a>>) -> Self {
+        if alloc.is_none() {
+            return MaybeMemoryMapAlloc {
+                alloc: MaybeUninit::uninit(),
+                initalized: false,
+            }
+        }
+        MaybeMemoryMapAlloc {
+            alloc: MaybeUninit::new(alloc.unwrap()),
+            initalized: true,
+        }
+    }
+    const unsafe fn assume_init_ref(&self) -> &MemoryMapAlloc<'a> {
+        unsafe { self.alloc.assume_init_ref() }
+    }
+    /// Note that if the allocator isn't initalized then this will do nothing.
+    const fn add_alloc(&mut self, alloc: MemoryMapAlloc<'a>) {
+        if self.initalized {
+            return;
+        }
+        self.alloc.write(alloc);
+        self.initalized = true;
+    }
+    fn remove_alloc(&mut self) {
+        if !self.initalized {
+            return;
+        }
+        unsafe { self.alloc.assume_init_drop(); }
+        self.initalized = false;
+    }
+}
+
+unsafe impl<'a> GlobalAlloc for MaybeMemoryMapAlloc<'a> {
+    unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
+        if self.initalized {
+            unsafe {
+                LAST_MEMMAP_ERR = Err(crate::Error::new(
+                    "MaybeMemoryMapAlloc not initalized",
+                    MAYBE_MEMORY_MAP_ALLOC_UNINITALIZED,
+                ))
+            }
+            return null_mut();
+        }
+        unsafe { self.alloc.assume_init_ref().alloc(layout) }
+    }
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
+        if self.initalized {
+            unsafe {
+                LAST_MEMMAP_ERR = Err(crate::Error::new(
+                    "MaybeMemoryMapAlloc not initalized",
+                    MAYBE_MEMORY_MAP_ALLOC_UNINITALIZED,
+                ))
+            }
+            return;
+        }
+        unsafe { self.alloc.assume_init_ref().dealloc(ptr, layout) }
+    }
+}
+
+unsafe impl<'a> Allocator for MaybeMemoryMapAlloc<'a> {
+    fn allocate(&self, layout: core::alloc::Layout) -> Result<NonNull<[u8]>, core::alloc::AllocError> {
+        if !self.initalized {
+            unsafe {
+                LAST_MEMMAP_ERR = Err(crate::Error::new(
+                    "MaybeMemoryMapAlloc not initalized",
+                    MAYBE_MEMORY_MAP_ALLOC_UNINITALIZED,
+                ))
+            }
+            return Err(core::alloc::AllocError {});
+        }
+        unsafe { self.alloc.assume_init_ref() }.allocate(layout)
+    }
+    unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: core::alloc::Layout) {
+        if !self.initalized {
+            unsafe {
+                LAST_MEMMAP_ERR = Err(crate::Error::new(
+                    "MaybeMemoryMapAlloc not initalized",
+                    MAYBE_MEMORY_MAP_ALLOC_UNINITALIZED,
+                ))
+            }
+            return;
+        }
+        unsafe { self.alloc.assume_init_ref().deallocate(ptr, layout) }
+    }
+}
 
 unsafe impl<'a> GlobalAlloc for MemoryMapAlloc<'a> {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {

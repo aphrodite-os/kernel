@@ -1,5 +1,6 @@
 //! Provides interrupt-related functions
 #![cfg(any(target_arch = "x86"))]
+#![allow(static_mut_refs)]
 
 use core::{alloc::{Allocator, Layout}, arch::asm, mem::MaybeUninit};
 
@@ -76,9 +77,7 @@ fn load_idt(base: *const u8, size: usize) {
         });
     }
     unsafe {
-        asm!(
-            "lidt {}", in(reg) IDTR.as_ptr() as usize
-        )
+        asm!("lidt {}", in(reg) IDTR.as_ptr() as usize)
     }
 }
 
@@ -90,7 +89,7 @@ fn activate_idt(idt: Idt, alloc: crate::mem::MemoryMapAlloc) {
         let vector = idt.vectors[i];
         let func = unsafe { idt.funcs[i].assume_init() } as usize as u32;
         let user_callable = idt.user_callable[i];
-        let output: u64 = func & 0b1111111111111111;
+        let output: u64 = (func & 0b1111111111111111) as u64;
 
     }
 }
