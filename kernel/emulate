@@ -11,10 +11,12 @@ set -e
 
 cd ../emulation
 
-# -f makes it so it won't error out if the file doesn't exist
-rm -f bochsrc
-cp bochsrc.template bochsrc
+if [[ "$1" = "x86" ]]; then
+    # -f makes it so it won't error out if the file doesn't exist
+    rm -f bochsrc
+    cp bochsrc.template bochsrc
 
-sed -i "s@%{BUILT_FILE}@aphrodite-$1.iso@g" bochsrc
+    sed -i "s@%{BUILT_FILE}@aphrodite-$1.iso@g" bochsrc
 
-bochs -q
+    bochs -q
+fi
