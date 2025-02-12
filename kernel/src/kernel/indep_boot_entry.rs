@@ -15,8 +15,7 @@ const MEM_TEST_SIZES: [usize; 8] = [1, 2, 4, 8, 16, 32, 64, 128];
 #[kernel_item(IndepBootEntry)]
 fn indep_boot_entry(
     display: Option<&dyn crate::display::TextDisplay>,
-    #[allow(non_snake_case)]
-    BI: &crate::boot::BootInfo,
+    #[allow(non_snake_case)] BI: &crate::boot::BootInfo,
 ) -> ! {
     crate::arch::output::sdebugsln("Entrypoint called");
 

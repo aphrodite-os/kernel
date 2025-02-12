@@ -3,7 +3,6 @@
 (
     set -e
 
-    
     export KERNEL_DIR=$(readlink -e .)
 
     DIR="${BASH_SOURCE%/*}"
@@ -34,26 +33,37 @@
         echo
     fi
 
-    cd ../kernel
-
-    for target in $TARGETS; do
+    function compile_one {
+        target=$1
         real_target=${!target}
+        real_target=$(basename $real_target)
+        echo "Compiling target $target(with rust target of $real_target)"
         cargo build --target "$real_target" --release -Zbuild-std --bin entrypoint_$target
-        cp target/i686-unknown-none/release/entrypoint_$target kernel.flat
+        cp "target/$(echo $real_target | sed 's/\.json//')/release/entrypoint_$target" kernel-$target
 
         if [[ "$CONFIG_BUILD_GRUB" = "true" ]]; then
-            rm -rf grub aphrodite-grub.iso
-            if [[ "$target" = "x86" ]]; then
+            if [[ "$target" = "x86" || "$target" = "mips64" || "$target" = "mipsel" || "$target" = "mipsle" ]]; then
+                rm -rf grub aphrodite-grub-$target.iso
                 cp -r ./grub_template ./grub
 
-                cp kernel.flat ./grub/boot/aphrodite.kernel
+                cp kernel-$target ./grub/boot/aphrodite.kernel
 
                 sed -i "s@%{VERSION}@$VERSION@g" ./grub/boot/grub/grub.cfg
 
-                grub-mkrescue -o aphrodite-grub.iso grub
-                cp aphrodite-grub.iso aphrodite.iso
+                grub-mkrescue -o aphrodite-grub-$target.iso grub
+                cp aphrodite-grub-$target.iso aphrodite-$target.iso
             fi
         fi
+    }
+
+    if [[ $# -ge 1 ]]; then
+        echo "[INFO] Compiling only target $1"
+        compile_one $1
+        exit 0
+    fi
+
+    for target in $TARGETS; do
+        compile_one $target
     done
 
     reset_version_vars

@@ -78,9 +78,7 @@ fn get_allocator() -> Option<&'static MemoryMapAlloc<'static>> {
 }
 
 #[kernel_item(MemMapAllocInit)]
-fn memory_map_alloc_init(
-    memmap: crate::boot::MemoryMap,
-) -> Result<(), crate::Error<'static>> {
+fn memory_map_alloc_init(memmap: crate::boot::MemoryMap) -> Result<(), crate::Error<'static>> {
     #[allow(static_mut_refs)]
     unsafe {
         ALLOCATOR_MEMMAP.write(memmap);

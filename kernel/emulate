@@ -1,6 +1,20 @@
 #!/bin/bash
 
+if [[ $# -ne 1 ]]; then
+    echo "Error: expected target to be passed to $0"
+    echo ""
+    echo "Run in the format: $0 target"
+    exit 1
+fi
+
 set -e
 
 cd ../emulation
+
+# -f makes it so it won't error out if the file doesn't exist
+rm -f bochsrc
+cp bochsrc.template bochsrc
+
+sed -i "s@%{BUILT_FILE}@aphrodite-$1.iso@g" bochsrc
+
 bochs -q

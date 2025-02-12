@@ -20,5 +20,6 @@
     "host_tools": false,
     "std": false,
     "tier": 3
-  }
+  },
+  "rustc-abi": "x86-softfloat"
 }

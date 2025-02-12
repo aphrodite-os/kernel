@@ -5,5 +5,8 @@ set -e
 DIR="${BASH_SOURCE%/*}"
 if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
 
-. $DIR/build
-. $DIR/emulate
+. $DIR/build $!
+
+if [[ $# -ge 1 ]]; then
+    . $DIR/emulate $!
+fi

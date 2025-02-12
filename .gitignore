@@ -20,15 +20,14 @@ Cargo.lock
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Generated grub files
-kernel/grub/
-kernel/aphrodite-grub.iso
-kernel/aphrodite.iso
-
 # Generated files
-kernel/kernel.flat
+kernel/grub/
+kernel/aphrodite-grub-*.iso
+kernel/aphrodite-*.iso
+kernel/kernel-*
 kernel/config.aphro.tmp
 kernel/targets.tmp
+emulation/bochsrc
 
 # Per-developer files
 kernel/config.aphro

@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{
     ItemFn, Signature, Token,
-    parse::{Parse, ParseStream}
+    parse::{Parse, ParseStream},
 };
 
 struct KernelItemNameInput {
@@ -24,22 +24,17 @@ fn to_tokens(signature: Signature, tokens: &mut proc_macro2::TokenStream) {
     signature.abi.to_tokens(ts.into());
     signature.fn_token.to_tokens(ts.into());
     signature.generics.to_tokens(ts.into());
-    signature
-        .paren_token
-        .surround(ts.into(), |tokens| {
-            signature.inputs.to_tokens(tokens);
-            if let Some(variadic) = &signature.variadic {
-                if !signature.inputs.empty_or_trailing() {
-                    <Token![,]>::default().to_tokens(tokens);
-                }
-                variadic.to_tokens(tokens);
+    signature.paren_token.surround(ts.into(), |tokens| {
+        signature.inputs.to_tokens(tokens);
+        if let Some(variadic) = &signature.variadic {
+            if !signature.inputs.empty_or_trailing() {
+                <Token![,]>::default().to_tokens(tokens);
             }
-        });
+            variadic.to_tokens(tokens);
+        }
+    });
     signature.output.to_tokens(ts.into());
-    signature
-        .generics
-        .where_clause
-        .to_tokens(ts.into());
+    signature.generics.where_clause.to_tokens(ts.into());
 }
 
 fn to_token_stream(signature: Signature) -> proc_macro2::TokenStream {
@@ -58,7 +53,7 @@ pub fn kernel_item(attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_name = input_fn.clone().sig.ident;
     let fn_sig = to_token_stream(input_fn.clone().sig);
 
-    quote!{
+    quote! {
         /// The #item_name kernel item.
         #[allow(non_upper_case_globals)]
         pub const #item_name: #fn_sig = #fn_name;

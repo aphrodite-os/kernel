@@ -17,6 +17,8 @@ fn main() {
     println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_PREUSER_OUTPUT_WARN, values("true", "false", none()))"#);
     println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_PREUSER_OUTPUT_ERROR, values("true", "false", none()))"#);
     println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_PREUSER_OUTPUT_FATAL, values("true", "false", none()))"#);
+
+    println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_BUILD_GRUB, values("true", "false", none()))"#);
     // End checks
 
     // Configuration name used when a config is required but should always evaluate to true
