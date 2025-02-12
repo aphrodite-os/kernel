@@ -63,7 +63,7 @@ pub struct MemoryMapping {
 }
 
 impl MemoryMapping {
-    /// Converts this MemoryMapping to [core::fmt::Arguments].
+    /// Output this MemoryMapping with [crate::arch::output] functions.
     pub fn output(&self) {
         crate::arch::output::sdebugs("Memory type: ");
         self.mem_type.output();
