@@ -11,9 +11,14 @@ pub mod paging;
 
 mod constants;
 
-pub use constants::*;
+pub(self) use constants::*;
 use interrupts::{pop_irq, restore_irq};
 use ports::{inb, outb};
+
+#[aphrodite_proc_macros::kernel_item(PagingAvailabe)]
+pub fn paging_available() -> bool {
+    true
+}
 
 /// Returns information from the CPUID command in the form
 /// (ebx, edx, ecx).
@@ -159,15 +164,4 @@ pub fn enable_a20() -> bool {
     }
 
     return test_a20();
-}
-
-/// Disables paging by clearing bit 31 in the cr0 register.
-pub fn disable_paging() {
-    unsafe {
-        asm!(
-            "mov eax, cr0",
-            "and eax, 01111111111111111111111111111111b",
-            "mov cr0, eax"
-        )
-    }
 }

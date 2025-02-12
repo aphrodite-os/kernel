@@ -2,4 +2,4 @@
 #![cfg(any(target_arch = "x86"))]
 
 /// The assembly port number to output debug messages to.
-pub const DEBUG_PORT: u16 = 0xE9;
+pub(super) const DEBUG_PORT: u16 = 0xE9;

@@ -59,9 +59,11 @@ static mut MAGIC: u32 = 0xFFFFFFFF;
 
 #[unsafe(link_section = ".start")]
 #[unsafe(no_mangle)]
+#[aphrodite_proc_macros::kernel_item(ArchBootEntry)]
 extern "C" fn _start() -> ! {
     unsafe { // Copy values provided by the bootloader out
         // Aphrodite bootloaders pass values in eax and ebx, however rust doesn't know that it can't overwrite those.
+        // (if necessary, we'll store all of the registers for other bootloaders and identify which one it is later)
         // we force using ebx and eax as the output of an empty assembly block to let it know.
         asm!(
             "", out("ebx") O, // Bootloader-specific data(ebx)
