@@ -20,7 +20,7 @@ use aphrodite::output::*;
 use aphrodite::display::COLOR_DEFAULT;
 
 #[cfg(not(CONFIG_DISABLE_MULTIBOOT2_SUPPORT))]
-#[unsafe(link_section = ".multiboot2")]
+#[unsafe(link_section = ".bootheader")]
 #[unsafe(no_mangle)]
 static MULTIBOOT2_HEADER: [u8; 24] = [
 	0xd6, 0x50, 0x52, 0xe8, // Magic number

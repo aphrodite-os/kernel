@@ -71,6 +71,7 @@ impl dyn TextDisplay + '_ {
     }
 }
 
+/// An implementation of [TextDisplay]. Returns (1,1) for the size and always returns Ok(()) for all functions.
 pub struct NoneTextDisplay {}
 
 impl TextDisplay for NoneTextDisplay {

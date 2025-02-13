@@ -1,7 +1,50 @@
 #!/bin/bash
 
 (
-    set -e
+    set -o errexit -o pipefail -o noclobber
+
+    HAVE_GETOPT=true
+    getopt --test > /dev/null && true
+    if [[ $? -ne 4 ]]; then
+        if [[ -n "EXIT_WITHOUT_GETOPT" ]]; then
+            echo '`getopt --test` failed. Exiting.'
+            exit 1
+        else
+            echo '`getopt --test` failed. Continuing and ignoring command line flags. (note that $1 will still be used for the target)'
+            echo '(to exit instead of ignoring, set the environment variable `EXIT_WITHOUT_GETOPT` to a non-null value)'
+            HAVE_GETOPT=false
+        fi
+    fi
+
+    check=false
+
+    if [[ "$HAVE_GETOPT" = "true" ]]; then
+        LONGOPTS=check
+        OPTIONS=c
+
+        PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@") || (
+            echo '`getopt` failed to parse command line arguments. Check the arguments passed.'
+            exit 1
+        )
+        eval set -- "$PARSED"
+
+        while true; do
+            case "$1" in
+                -c|--check)
+                    check=true
+                    shift
+                    ;;
+                --)
+                    shift
+                    break
+                    ;;
+                *)
+                    echo "Unknown argument"
+                    exit 1
+                    ;;
+            esac
+        done
+    fi
 
     export KERNEL_DIR=$(readlink -e .)
 
@@ -38,20 +81,24 @@
         real_target=${!target}
         real_target=$(basename $real_target)
         echo "Compiling target $target(with rust target of $real_target)"
-        cargo build --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
-        cp "target/$(echo $real_target | sed 's/\.json//')/release/entrypoint_$target" kernel-$target
+        if [[ $check = "true" ]]; then
+            cargo check --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
+        else
+            cargo build --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
+            cp "target/$(echo $real_target | sed 's/\.json//')/release/entrypoint_$target" kernel-$target
 
-        if [[ "$CONFIG_BUILD_GRUB" = "true" ]]; then
-            if [[ "$target" = "x86" || "$target" = "mips64" || "$target" = "mipsel" || "$target" = "mipsle" ]]; then
-                rm -rf grub aphrodite-grub-$target.iso
-                cp -r ./grub_template ./grub
+            if [[ "$CONFIG_BUILD_GRUB" = "true" ]]; then
+                if [[ "$target" = "x86" || "$target" = "mips64" || "$target" = "mipsel" || "$target" = "mipsle" ]]; then
+                    rm -rf grub aphrodite-grub-$target.iso
+                    cp -r ./grub_template ./grub
 
-                cp kernel-$target ./grub/boot/aphrodite.kernel
+                    cp kernel-$target ./grub/boot/aphrodite.kernel
 
-                sed -i "s@%{VERSION}@$VERSION@g" ./grub/boot/grub/grub.cfg
+                    sed -i "s@%{VERSION}@$VERSION@g" ./grub/boot/grub/grub.cfg
 
-                grub-mkrescue -o aphrodite-grub-$target.iso grub
-                cp aphrodite-grub-$target.iso aphrodite-$target.iso
+                    grub-mkrescue -o aphrodite-grub-$target.iso grub
+                    cp aphrodite-grub-$target.iso aphrodite-$target.iso
+                fi
             fi
         fi
     }

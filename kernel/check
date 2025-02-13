@@ -1,14 +1,88 @@
 #!/bin/bash
 
-# Build the file
-./build
+(
+    set -o errexit -o pipefail -o noclobber
 
-if grub-file --is-x86-multiboot2 kernel.flat; then
-    echo "Multiboot2 header valid" > ./check_results
-else
-    echo "Multiboot2 header INVALID!" > ./check_results
-fi
+    HAVE_GETOPT=true
+    getopt --test > /dev/null && true
+    if [[ $? -ne 4 ]]; then
+        if [[ -n "EXIT_WITHOUT_GETOPT" ]]; then
+            echo '`getopt --test` failed. Exiting.'
+            exit 1
+        else
+            echo '`getopt --test` failed. Continuing and ignoring command line flags. (note that $1 will still be used for the target)'
+            echo '(to exit instead of ignoring, set the environment variable `EXIT_WITHOUT_GETOPT` to a non-null value)'
+            HAVE_GETOPT=false
+        fi
+    fi
 
-echo
+    real_check=false
 
-cat check_results
+    if [[ "$HAVE_GETOPT" = "true" ]]; then
+        LONGOPTS=real_check
+        OPTIONS=c
+
+        PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@") || (
+            echo '`getopt` failed to parse command line arguments. Check the arguments passed.'
+            exit 1
+        )
+        eval set -- "$PARSED"
+
+        while true; do
+            case "$1" in
+                -c|--real_check)
+                    real_check=true
+                    shift
+                    ;;
+                --)
+                    shift
+                    break
+                    ;;
+                *)
+                    echo "Unknown argument"
+                    exit 1
+                    ;;
+            esac
+        done
+    fi
+
+    if [[ $real_check = "true" ]]; then
+        ./build --check $!
+    else
+        ./build $!
+    fi
+
+    rm ./check_results
+
+    target="$1"
+
+    if [[ -z "$target" || "$target" = "x86" || "$target" = "mips64" || "$target" = "mipsel" || "$target" = "mipsle" ]]; then
+        if [[ -z "$target" ]]; then
+            # -f makes it so it won't error out if the file doesn't exist
+            rm -f targets.tmp
+            envsubst < "targets" > "targets.tmp"
+
+            export $(grep -Ev '^#' targets.tmp | xargs)
+            
+            for target in $TARGETS; do
+                if grub-file --is-x86-multiboot2 kernel-$target; then
+                    echo "Multiboot2 header valid" > ./check_results
+                else
+                    echo "Multiboot2 header INVALID!" > ./check_results
+                fi
+            done
+        else
+            if grub-file --is-x86-multiboot2 kernel-$target; then
+                echo "Multiboot2 header valid" > ./check_results
+            else
+                echo "Multiboot2 header INVALID!" > ./check_results
+            fi
+        fi
+    else
+        echo "Multiboot2 header not checked as neither x86 nor mips is being built" > ./check_results
+    fi
+
+    echo
+
+    cat check_results
+)
