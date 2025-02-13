@@ -5,8 +5,14 @@ set -e
 DIR="${BASH_SOURCE%/*}"
 if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
 
+if [[ $# -lt 1 ]]; then
+    echo "[INFO] Building all targets; no target argument provided"
+fi
+
 . $DIR/build $!
 
 if [[ $# -ge 1 ]]; then
     . $DIR/emulate $!
+else
+    echo "[WARN] Not emulating; no target argument provided"
 fi

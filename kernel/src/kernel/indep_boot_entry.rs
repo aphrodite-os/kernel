@@ -5,7 +5,7 @@
 
 use core::alloc::{Allocator, Layout};
 
-use crate::{display::COLOR_DEFAULT, output::*};
+use crate::{display::{NoneTextDisplay, COLOR_DEFAULT}, output::*};
 
 use aphrodite_proc_macros::*;
 
@@ -17,9 +17,9 @@ fn indep_boot_entry(
     display: Option<&dyn crate::display::TextDisplay>,
     #[allow(non_snake_case)] BI: &crate::boot::BootInfo,
 ) -> ! {
-    crate::arch::output::sdebugsln("Entrypoint called");
+    crate::arch::output::sdebugsln("IndepBootEntry called");
 
-    let display = display.unwrap();
+    let display = display.unwrap_or(&NoneTextDisplay {});
 
     display.clear_screen(COLOR_DEFAULT);
     sreset();

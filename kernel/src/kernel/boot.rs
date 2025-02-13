@@ -37,9 +37,9 @@ impl MemoryType {
                     crate::arch::output::sdebugsnp("Hardware specific ");
                     crate::arch::output::sdebugbnp(&crate::u32_as_u8_slice(*val));
                     if *allocatable {
-                        crate::arch::output::sdebugsnp(" allocatable");
+                        crate::arch::output::sdebugsnp(", allocatable");
                     } else {
-                        crate::arch::output::sdebugsnp(" unallocatable");
+                        crate::arch::output::sdebugsnp(", unallocatable");
                     }
                     
             },

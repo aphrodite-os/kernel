@@ -1,5 +1,7 @@
 //! Types, constants and traits for displaying text. Mostly implemented in arch/.
 
+use core::fmt::Write;
+
 /// A type used for color in the functions of [TextDisplay].
 /// 
 /// Type alias for (u8, bool). Boolean argument is whether to
@@ -66,5 +68,25 @@ impl dyn TextDisplay + '_ {
             }
         }
         Ok((x, y))
+    }
+}
+
+pub struct NoneTextDisplay {}
+
+impl TextDisplay for NoneTextDisplay {
+    fn get_size(&self) -> (u32, u32) {
+        (1,1)
+    }
+    fn write_char(&self, _: (u32, u32), _: u8, _: Color) -> Result<(), crate::Error<'static>> {
+        Ok(())
+    }
+}
+
+impl Write for NoneTextDisplay {
+    fn write_char(&mut self, _: char) -> core::fmt::Result {
+        Ok(())
+    }
+    fn write_str(&mut self, _: &str) -> core::fmt::Result {
+        Ok(())
     }
 }
