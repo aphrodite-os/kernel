@@ -32,3 +32,4 @@ emulation/bochsrc
 # Per-developer files
 kernel/config.aphro
 aphrodite.code-workspace
+emulation/bx_enh_dbg.ini
