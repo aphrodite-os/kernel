@@ -9,7 +9,7 @@ pub struct Tag {
     /// The type of the tag.
     pub tag_type: u32,
     /// The length of the tag.
-    pub tag_len: u32
+    pub tag_len: u32,
 }
 
 /// The root tag. The official Multiboot2 name is literally the "fixed part" of the tags, so I made a better name.
@@ -32,7 +32,7 @@ pub struct Module {
     pub mod_end: *const u8,
     /// A string that should be in the format `module_name (command line arguments)`.
     /// See <https://aphrodite-os.github.io/book/bootloader-modules.html>.
-    pub mod_str: &'static core::ffi::CStr
+    pub mod_str: &'static core::ffi::CStr,
 }
 
 /// One memory section provided by a Multiboot2 bootloader.
@@ -58,10 +58,10 @@ impl Into<crate::boot::MemoryMapping> for MemorySection {
                 2 => crate::boot::MemoryType::HardwareReserved,
                 3 => crate::boot::MemoryType::HardwareSpecific(3, false),
                 5 => crate::boot::MemoryType::Faulty,
-                _ => crate::boot::MemoryType::Reserved
+                _ => crate::boot::MemoryType::Reserved,
             },
             start: self.base_addr,
-            len: self.length
+            len: self.length,
         }
     }
 }
@@ -79,7 +79,7 @@ pub struct RawMemoryMap {
     /// The version of the memory map. Should be disregarded as it's 0.
     pub entry_version: u32, // currently is 0, future Multiboot2 versions may increment
     /// The sections. This is the reason that [Clone] can't be implemented for [RawMemoryMap].
-    pub sections: [MemorySection]
+    pub sections: [MemorySection],
 }
 
 /// A full memory map provided by a Multiboot2 bootloader.
@@ -119,7 +119,7 @@ pub struct PaletteColorDescriptor {
     /// The green value
     pub green: u8,
     /// The blue value
-    pub blue: u8
+    pub blue: u8,
 }
 
 /// Information about color, for use in [FramebufferInfo].
@@ -131,7 +131,7 @@ pub enum ColorInfo {
         /// The number of colors in the palette.
         num_colors: u32,
         /// The first color in the palette.
-        palette: *const PaletteColorDescriptor
+        palette: *const PaletteColorDescriptor,
     },
     /// RGB information for use on the framebuffer.
     RGBColor {
@@ -151,7 +151,7 @@ pub enum ColorInfo {
         blue_mask_size: u8,
     },
     /// Text information, no metadata
-    EGAText
+    EGAText,
 }
 
 /// Information about the framebuffer.
@@ -172,7 +172,6 @@ pub struct FramebufferInfo {
     pub fb_type: u8,
     /// Reserved space. Ignore.
     reserved: u8,
-
     // Color info after this; we need separate structs for each colorinfo as
     // we have to understand the format the bootloader gives us.
 }
@@ -190,7 +189,6 @@ pub struct Multiboot2BootInfo {
     // Multiboot2 bootloaders may provide us with the BIOS device and partition, but we're not interested.
     // To ensure future developers don't get any ideas, I'm leaving it out here.
     // If you need it, good luck.
-
     /// We're provided with a C-style UTF-8(null-terminated UTF-8) string. This should contain the original pointer provided by
     /// the bootloader.
     /// See <https://aphrodite-os.github.io/book/command-line.html> for the format.
@@ -201,7 +199,6 @@ pub struct Multiboot2BootInfo {
 
     // Multiboot2 bootloaders may provide us with ELF symbols, but I'm feeling lazy and right now it's mostly
     // unnecessary, so I don't care. Sorry if you are affected by this.
-    
     /// The memory map provided by the bootloader.
     pub memory_map: Option<MemoryMap>,
 
@@ -212,12 +209,10 @@ pub struct Multiboot2BootInfo {
     // APM table is ignored as APM has been superseded by ACPI. If your system doesn't support ACPI, good luck.
 
     // VBE table is ignored for a similar reason to above: it's deprecated. Good luck if you need it.
-
     /// Provides information on the framebuffer.
     pub framebuffer_info: Option<FramebufferInfo>,
     /// Color info, stored separately from [FramebufferInfo] because rust
     pub color_info: Option<ColorInfo>,
-
     // Even though SMBIOS is documented for Multiboot2, we're not using it and will instead search for it ourselves.
     // This is because right now I cannot figure out what format it provides the SMBIOS table in.
 

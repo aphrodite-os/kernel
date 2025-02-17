@@ -3,13 +3,13 @@
 
 use core::arch::asm;
 
-pub mod interrupts;
-pub mod ports;
-pub mod output;
 pub mod egatext;
-pub mod paging;
 mod gdt;
+pub mod interrupts;
 pub mod memory;
+pub mod output;
+pub mod paging;
+pub mod ports;
 
 mod constants;
 
@@ -17,13 +17,9 @@ pub(self) use constants::*;
 use interrupts::{pop_irq, restore_irq};
 use ports::{inb, outb};
 
+/// Returns the most specific architecture available.
 pub const fn get_arch() -> super::Architecture {
     super::Architecture::X86
-}
-
-#[aphrodite_proc_macros::kernel_item(PagingAvailabe)]
-pub fn paging_available() -> bool {
-    true
 }
 
 /// Returns information from the CPUID command in the form
@@ -70,12 +66,12 @@ pub fn test_a20() -> bool {
 
 /// Waits for a keyboard command to complete.
 pub fn wait_for_keyboard_cmd() {
-    while inb(0x64)&0b10 > 1 {}
+    while inb(0x64) & 0b10 > 1 {}
 }
 
 /// Waits for there to be data to read from the keyboard.
 pub fn wait_for_keyboard_data() {
-    while inb(0x64)&0b1 == 0 {}
+    while inb(0x64) & 0b1 == 0 {}
 }
 
 /// Sends a keyboard command.
@@ -111,7 +107,7 @@ pub fn enable_a20_keyboard() {
     send_keyboard_cmd(0xD1); // write to output
 
     wait_for_keyboard_cmd();
-    send_keyboard_data(a|2);
+    send_keyboard_data(a | 2);
 
     wait_for_keyboard_cmd();
     send_keyboard_cmd(0xAE); // enable keyboard
@@ -123,8 +119,8 @@ pub fn enable_a20_keyboard() {
 /// Note that this may not work or do something unexpected.
 pub fn enable_a20_fasta20() {
     let mut a = inb(0x92);
-    if a&0b10 > 0 {
-        return
+    if a & 0b10 > 0 {
+        return;
     }
     a |= 0b10;
     a &= 0xFE;
@@ -145,7 +141,7 @@ pub fn enable_a20() -> bool {
 
     enable_a20_keyboard();
     let mut i = 0u32;
-    while (!test_a20()) && i<10000 {
+    while (!test_a20()) && i < 10000 {
         i += 1;
     }
 
@@ -155,7 +151,7 @@ pub fn enable_a20() -> bool {
 
     enable_a20_ee_port();
     let mut i = 0u32;
-    while (!test_a20()) && i<10000 {
+    while (!test_a20()) && i < 10000 {
         i += 1;
     }
 
@@ -165,7 +161,7 @@ pub fn enable_a20() -> bool {
 
     enable_a20_fasta20();
     let mut i = 0u32;
-    while (!test_a20()) && i<10000 {
+    while (!test_a20()) && i < 10000 {
         i += 1;
     }
 

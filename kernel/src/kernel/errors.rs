@@ -6,7 +6,7 @@ use crate::display::TextDisplay;
 #[derive(Clone, Copy)]
 pub struct Error<'a> {
     message: &'a str,
-    code: i16
+    code: i16,
 }
 
 impl<'a> Error<'a> {
@@ -17,7 +17,7 @@ impl<'a> Error<'a> {
 }
 
 impl Error<'_> {
-    /// Display the contents of the error on a [TextDisplay].
+    /// Display the contents of the error on a [TextDisplay] with no prefix.
     pub fn display_np(&self, display: &dyn TextDisplay) {
         crate::output::terrorbnp(&crate::i16_as_u8_slice(self.code), display).unwrap();
         crate::output::terrorsnp(": ", display).unwrap();

@@ -82,17 +82,13 @@ pub fn parse_raw_pc_screen_font(data: Vec<u8>) -> Result<RawPCScreenFont, crate:
 }
 
 /// Parses a PC Screen Font into a [PCScreenFont].
-pub fn parse_pc_screen_font(
-    data: RawPCScreenFont,
-) -> Result<PCScreenFont, crate::Error<'static>> {
+pub fn parse_pc_screen_font(data: RawPCScreenFont) -> Result<PCScreenFont, crate::Error<'static>> {
     unsafe {
         if data.flags == 0 {
-            let mut unitable: Vec<Vec<u8>> = Vec::with_capacity(data.num_glyphs as usize * core::mem::size_of::<Vec<u8>>());
+            let mut unitable: Vec<Vec<u8>> =
+                Vec::with_capacity(data.num_glyphs as usize * core::mem::size_of::<Vec<u8>>());
 
-            let unistr = (data
-                .glyphs
-                .as_slice()
-                as *const [u8])
+            let unistr = (data.glyphs.as_slice() as *const [u8])
                 .byte_add(data.bytes_per_glyph as usize * data.num_glyphs as usize);
 
             let mut i = 0usize;
@@ -136,9 +132,7 @@ pub fn parse_pc_screen_font(
 }
 
 /// Parses a Vec<u8> into a [PCScreenFont].
-pub fn parse_psfu(
-    data: Vec<u8>,
-) -> Result<PCScreenFont, crate::Error<'static>> {
+pub fn parse_psfu(data: Vec<u8>) -> Result<PCScreenFont, crate::Error<'static>> {
     let data = parse_raw_pc_screen_font(data)?;
     parse_pc_screen_font(data)
 }

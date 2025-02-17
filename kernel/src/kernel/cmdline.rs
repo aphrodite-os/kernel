@@ -19,14 +19,14 @@ pub struct Argument {
     /// The name of an argument.
     pub name: &'static str,
     /// The value of an argument.
-    pub value: ArgumentValue
+    pub value: ArgumentValue,
 }
 
 /// A single flag in a [Cmdline].
 #[derive(Clone, Copy)]
 pub struct Flag {
     /// The name of a flag.
-    pub name: &'static str
+    pub name: &'static str,
 }
 
 /// A kernel command line.
@@ -83,7 +83,10 @@ impl Validator for CmdlineValidator {
                 }
             }
             if !correct {
-                return Err(crate::Error::new("invalid argument in command line", ERR_INVALID_ARGUMENT));
+                return Err(crate::Error::new(
+                    "invalid argument in command line",
+                    ERR_INVALID_ARGUMENT,
+                ));
             }
         }
 
@@ -96,7 +99,10 @@ impl Validator for CmdlineValidator {
                 }
             }
             if !correct {
-                return Err(crate::Error::new("invalid flag in command line", ERR_INVALID_FLAG));
+                return Err(crate::Error::new(
+                    "invalid flag in command line",
+                    ERR_INVALID_FLAG,
+                ));
             }
         }
         Ok(())

@@ -4,8 +4,11 @@ use core::arch::asm;
 
 use aphrodite_proc_macros::kernel_item;
 
+/// One page directory entry. Use [PageDirectoryEntry::create_fourmb] or [PageDirectoryEntry::create_other] to make these.
 pub enum PageDirectoryEntry {
+    /// A four megabyte page.
     FourMb(u32),
+    /// A smaller page.
     Other(u32),
 }
 
@@ -114,11 +117,9 @@ impl PageDirectoryEntry {
 static mut PAGE_DIRECTORY: PageDirectoryEntry =
     PageDirectoryEntry::create_other(0, false, 0, false, false, false, false, false, false, false);
 
+/// Initalize paging.
 #[kernel_item(PagingInit)]
-pub fn initalize_paging() {
-
-}
-
+pub fn initalize_paging() {}
 
 /// Disables paging by clearing bit 31 in the cr0 register.
 #[kernel_item(PagingDeinit)]

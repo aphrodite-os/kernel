@@ -34,7 +34,12 @@ impl core::fmt::Write for FramebufferInfo {
 
 impl crate::display::TextDisplay for FramebufferInfo {
     /// Writes a character to the screen.
-    fn write_char(&self, mut pos: (u32, u32), char: u8, color: Color) -> Result<(), crate::Error<'static>> {
+    fn write_char(
+        &self,
+        mut pos: (u32, u32),
+        char: u8,
+        color: Color,
+    ) -> Result<(), crate::Error<'static>> {
         let mut clr = color.0;
         if color.1 {
             match clr {
@@ -44,18 +49,18 @@ impl crate::display::TextDisplay for FramebufferInfo {
             }
         }
         let color = clr;
-        if pos.0>self.width {
+        if pos.0 > self.width {
             return Err(crate::Error::new("Invalid X position", ERR_INVALID_X));
         }
-        if pos.1>self.height {
+        if pos.1 > self.height {
             return Err(crate::Error::new("Invalid Y position", ERR_INVALID_Y));
         }
         unsafe {
             let mut addr = self.address as usize;
-            addr += (pos.1*self.pitch) as usize;
-            addr += (pos.0*(self.bpp as u32/8)) as usize;
+            addr += (pos.1 * self.pitch) as usize;
+            addr += (pos.0 * (self.bpp as u32 / 8)) as usize;
             let base_ptr = addr as *mut u16;
-            (*base_ptr) = ((color as u16)<<8) | (char as u16);
+            (*base_ptr) = ((color as u16) << 8) | (char as u16);
         }
         pos.1 += 1;
         if self.change_cursor {
@@ -69,7 +74,6 @@ impl crate::display::TextDisplay for FramebufferInfo {
 }
 
 impl FramebufferInfo {
-    
     /// Disables the cursor.
     pub fn disable_cursor(self) {
         super::ports::outb(0x3D4, 0x0A);

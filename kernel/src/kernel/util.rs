@@ -13,7 +13,7 @@ pub const fn i16_as_u8_slice(mut value: i16) -> [u8; 6] {
     }
     i = 5;
     while value > 0 {
-        let digit = value%10;
+        let digit = value % 10;
         let char = b'0' + digit as u8;
         buf[i] = char;
         value = value / 10;
@@ -30,7 +30,7 @@ pub const fn u32_as_u8_slice(mut value: u32) -> [u8; 10] {
         buf[0] = b'0';
     }
     while value > 0 {
-        let digit = value%10;
+        let digit = value % 10;
         let char = b'0' + digit as u8;
         buf[i] = char;
         value = value / 10;
@@ -47,7 +47,7 @@ pub const fn u8_as_u8_slice(mut value: u8) -> [u8; 3] {
         buf[0] = b'0';
     }
     while value > 0 {
-        let digit = value%10;
+        let digit = value % 10;
         let char = b'0' + digit as u8;
         buf[i] = char;
         value = value / 10;
@@ -64,7 +64,7 @@ pub const fn usize_as_u8_slice(mut value: usize) -> [u8; 20] {
         buf[0] = b'0';
     }
     while value > 0 {
-        let digit = value%10;
+        let digit = value % 10;
         let char = b'0' + digit as u8;
         buf[i] = char;
         value = value / 10;
@@ -81,7 +81,7 @@ pub const fn u64_as_u8_slice(mut value: u64) -> [u8; 20] {
         buf[0] = b'0';
     }
     while value > 0 {
-        let digit = value%10;
+        let digit = value % 10;
         let char = b'0' + digit as u8;
         buf[i] = char;
         value = value / 10;
@@ -103,7 +103,7 @@ pub fn str_as_i16(mut value: &[u8]) -> i16 {
             continue;
         }
         out *= 10;
-        out += (byte-b'0') as i16;
+        out += (byte - b'0') as i16;
     }
 
     let mut reversed = 0;
@@ -125,7 +125,7 @@ pub fn str_as_u32(value: &[u8]) -> u32 {
             continue;
         }
         out *= 10;
-        out += (byte-b'0') as u32;
+        out += (byte - b'0') as u32;
     }
 
     let mut reversed = 0;
@@ -147,7 +147,7 @@ pub fn str_as_u128(value: &[u8]) -> u128 {
             continue;
         }
         out *= 10;
-        out += (byte-b'0') as u128;
+        out += (byte - b'0') as u128;
     }
 
     let mut reversed = 0;
@@ -169,7 +169,7 @@ pub fn str_as_u64(value: &[u8]) -> u64 {
             continue;
         }
         out *= 10;
-        out += (byte-b'0') as u64;
+        out += (byte - b'0') as u64;
     }
 
     let mut reversed = 0;

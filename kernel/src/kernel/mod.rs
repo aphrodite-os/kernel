@@ -29,12 +29,12 @@ pub mod display;
 mod errors;
 pub mod indep_boot_entry;
 pub mod mem;
+pub mod memsections;
 pub mod multiboot2;
 pub mod output;
 pub mod psfont;
 mod traits;
 mod util;
-pub mod memsections;
 
 #[macro_use]
 pub(crate) mod cfg;
@@ -47,3 +47,11 @@ pub use util::*;
 
 #[allow(unused_imports)] // if there are no traits, then it gives a warning
 pub use traits::*;
+
+pub const fn version() -> &'static str {
+    env!("VERSION")
+}
+
+pub const fn cfg_version() -> &'static str {
+    env!("CFG_VERSION")
+}

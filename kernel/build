@@ -1,29 +1,33 @@
 #!/bin/bash
 
 (
-    set -o errexit -o pipefail -o noclobber
+    flags=$-
+    set -o pipefail -o noclobber
 
-    HAVE_GETOPT=true
+    HAVE_GETOPT="${HAVE_GETOPT:-true}"
     getopt --test > /dev/null && true
-    if [[ $? -ne 4 ]]; then
+    if [[ $? -ne 4 && $HAVE_GETOPT ]]; then
         if [[ -n "EXIT_WITHOUT_GETOPT" ]]; then
-            echo '`getopt --test` failed. Exiting.'
+            echo '[ERROR] `getopt --test` failed. Exiting.'
             exit 1
         else
-            echo '`getopt --test` failed. Continuing and ignoring command line flags. (note that $1 will still be used for the target)'
-            echo '(to exit instead of ignoring, set the environment variable `EXIT_WITHOUT_GETOPT` to a non-null value)'
+            echo '[WARN] `getopt --test` failed. Continuing and ignoring command line flags. (note that $1 will still be used for the target)'
+            echo '[WARN] (to exit instead of ignoring, set the environment variable `EXIT_WITHOUT_GETOPT` to a non-null value)'
             HAVE_GETOPT=false
         fi
     fi
 
+    set -o errexit # put down here as getopt returns error code four if it's working, and it probably would work otherwise, but I'm not taking chances
+
     check=false
+    format=false
 
     if [[ "$HAVE_GETOPT" = "true" ]]; then
-        LONGOPTS=check
-        OPTIONS=c
+        LONGOPTS=check,format
+        OPTIONS=cf
 
         PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@") || (
-            echo '`getopt` failed to parse command line arguments. Check the arguments passed.'
+            echo '[ERROR] Failed to parse command line arguments. If your getopt is broken, set HAVE_GETOPT=true.'
             exit 1
         )
         eval set -- "$PARSED"
@@ -32,6 +36,10 @@
             case "$1" in
                 -c|--check)
                     check=true
+                    shift
+                    ;;
+                -f|--format)
+                    format=true
                     shift
                     ;;
                 --)
@@ -44,6 +52,12 @@
                     ;;
             esac
         done
+
+        if [[ $check == "true" && $format == "true" ]]; then
+            echo "[WARN] Both --check and --format were passed."
+            echo "[WARN] Interpretting as only --format, as format will also check that Aphrokern can compile."
+            check=false
+        fi
     fi
 
     export KERNEL_DIR=$(readlink -e .)
@@ -79,11 +93,11 @@
     function compile_one {
         target=$1
         real_target=${!target}
-        real_target=$(basename $real_target)
-        echo "Compiling target $target(with rust target of $real_target)"
         if [[ $check = "true" ]]; then
+            echo "[INFO] Checking target $target(with rust target of $real_target)"
             cargo check --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
         else
+            echo "[INFO] Compiling target $target(with rust target of $real_target)"
             cargo build --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
             cp "target/$(echo $real_target | sed 's/\.json//')/release/entrypoint_$target" kernel-$target
 
@@ -103,6 +117,12 @@
         fi
     }
 
+    if [[ $format = "true" ]]; then
+        echo "[INFO] Formatting"
+        cargo fmt --all
+        exit 0
+    fi
+
     if [[ $# -ge 1 ]]; then
         echo "[INFO] Compiling only target $1"
         compile_one $1
@@ -114,4 +134,5 @@
     done
 
     reset_version_vars
+    set +$flags
 )

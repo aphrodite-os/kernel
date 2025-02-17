@@ -3,7 +3,7 @@
 use core::fmt::Write;
 
 /// A type used for color in the functions of [TextDisplay].
-/// 
+///
 /// Type alias for (u8, bool). Boolean argument is whether to
 /// change the value(i.e. for [COLOR_BLACK] and [COLOR_DEFAULT]).
 pub type Color = (u8, bool);
@@ -18,7 +18,12 @@ pub const COLOR_DEFAULT: Color = (1, true);
 /// Some form of display that can be written to with text.
 pub trait TextDisplay: core::fmt::Write {
     /// Writes a single character to the specified position.
-    fn write_char(&self, pos: (u32, u32), char: u8, color: Color) -> Result<(), crate::Error<'static>>;
+    fn write_char(
+        &self,
+        pos: (u32, u32),
+        char: u8,
+        color: Color,
+    ) -> Result<(), crate::Error<'static>>;
     /// Gets the size of the screen.
     fn get_size(&self) -> (u32, u32);
 }
@@ -35,16 +40,21 @@ impl dyn TextDisplay + '_ {
     }
 
     /// Writes a &str to the screen.
-    pub fn write_str(&self, pos: (u32, u32), str: &str, color: Color) -> Result<(u32, u32), crate::Error<'static>> {
+    pub fn write_str(
+        &self,
+        pos: (u32, u32),
+        str: &str,
+        color: Color,
+    ) -> Result<(u32, u32), crate::Error<'static>> {
         let (width, _) = self.get_size();
         let (mut x, mut y) = pos;
         for char in str.as_bytes() {
             self.write_char((x, y), *char, color)?;
             if *char == 0 {
-                continue
+                continue;
             }
             x += 1;
-            while x>width {
+            while x > width {
                 x -= width;
                 y += 1;
             }
@@ -53,16 +63,21 @@ impl dyn TextDisplay + '_ {
     }
 
     /// Writes a &\[u8] to the screen.
-    pub fn write_bytes(&self, pos: (u32, u32), str: &[u8], color: Color) -> Result<(u32, u32), crate::Error<'static>> {
+    pub fn write_bytes(
+        &self,
+        pos: (u32, u32),
+        str: &[u8],
+        color: Color,
+    ) -> Result<(u32, u32), crate::Error<'static>> {
         let (width, _) = self.get_size();
         let (mut x, mut y) = pos;
         for char in str {
             self.write_char((x, y), *char, color)?;
             if *char == 0 {
-                continue
+                continue;
             }
             x += 1;
-            while x>width {
+            while x > width {
                 x -= width;
                 y += 1;
             }
@@ -76,7 +91,7 @@ pub struct NoneTextDisplay {}
 
 impl TextDisplay for NoneTextDisplay {
     fn get_size(&self) -> (u32, u32) {
-        (1,1)
+        (1, 1)
     }
     fn write_char(&self, _: (u32, u32), _: u8, _: Color) -> Result<(), crate::Error<'static>> {
         Ok(())

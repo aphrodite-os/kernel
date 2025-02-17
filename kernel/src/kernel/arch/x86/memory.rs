@@ -6,8 +6,9 @@ use alloc::{vec, vec::Vec};
 
 use crate::memsections::*;
 
-use super::gdt::{write_gdt_entries, GDTEntry};
+use super::gdt::{GDTEntry, write_gdt_entries};
 
+/// A list of memory sections. Create one with [MemorySectionBuilder].
 pub struct MemorySections {
     sections: Vec<MemorySection>,
 }
@@ -100,11 +101,11 @@ unsafe impl crate::memsections::MemorySections for MemorySections {
 
             let gdtr = GDTR {
                 address: ptr as *const u8 as usize as u32,
-                size: (ptr.len()-1) as u16
+                size: (ptr.len() - 1) as u16,
             };
 
             let addr = &gdtr as *const GDTR as *const () as usize as u32;
-            
+
             asm!(
                 "lgdt eax",
                 in("eax") addr
@@ -124,10 +125,10 @@ unsafe impl crate::memsections::MemorySections for MemorySections {
                 }
 
                 if entry.access & 0b11000 == 0b11000 && !code_set {
-                    code_segment = i-1;
+                    code_segment = i - 1;
                     code_set = true;
                 } else if entry.access & 0b10000 == 0b10000 && !data_set {
-                    data_segment = i-1;
+                    data_segment = i - 1;
                     data_set = true;
                 }
             }
@@ -156,16 +157,19 @@ pub struct MemorySectionBuilder {
 }
 
 impl MemorySectionBuilder {
+    /// Create a new MemorySectionBuilder.
     pub fn new() -> Self {
         MemorySectionBuilder { sections: vec![] }
     }
 
+    /// Adds a section to this MemorySectionBuilder.
     pub fn add_section(&mut self, section: MemorySection) -> &mut Self {
         self.sections.push(section);
 
         self
     }
 
+    /// Finishes this MemorySectionBuilder and returns a MemorySections.
     pub fn finish(self) -> MemorySections {
         MemorySections {
             sections: self.sections,

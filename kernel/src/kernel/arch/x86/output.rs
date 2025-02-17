@@ -94,7 +94,7 @@ macro_rules! message_funcs {
                 ports::outb(super::DEBUG_PORT, s);
             }
         }
-    }
+    };
 }
 
 message_funcs!(debug, "[DEBUG] ", CONFIG_PREUSER_OUTPUT_DEBUG);
@@ -103,4 +103,3 @@ message_funcs!(warning, "[WARN] ", CONFIG_PREUSER_OUTPUT_WARN);
 message_funcs!(error, "[ERROR] ", CONFIG_PREUSER_OUTPUT_ERROR);
 message_funcs!(fatal, "[FATAL] ", CONFIG_PREUSER_OUTPUT_FATAL);
 message_funcs!(output, "", NONE);
-

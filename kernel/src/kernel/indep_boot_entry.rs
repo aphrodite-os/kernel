@@ -5,7 +5,10 @@
 
 use core::alloc::{Allocator, Layout};
 
-use crate::{display::{NoneTextDisplay, COLOR_DEFAULT}, output::*};
+use crate::{
+    display::{COLOR_DEFAULT, NoneTextDisplay},
+    output::*,
+};
 
 use aphrodite_proc_macros::*;
 
@@ -17,7 +20,10 @@ fn indep_boot_entry(
     display: Option<&dyn crate::display::TextDisplay>,
     #[allow(non_snake_case)] BI: &crate::boot::BootInfo,
 ) -> ! {
-    assert_ne!(crate::arch::get_arch(), crate::arch::Architecture::ExampleDummy);
+    assert_ne!(
+        crate::arch::get_arch(),
+        crate::arch::Architecture::ExampleDummy
+    );
     crate::arch::output::sdebugsln("IndepBootEntry called");
 
     let display = display.unwrap_or(&NoneTextDisplay {});
@@ -64,6 +70,8 @@ fn indep_boot_entry(
                 terrors("Failed to deallocate: ", display).unwrap();
                 err.display_np(display);
                 panic!("Deallocation failure");
+            } else {
+                tdebugsln("Successfully deallocated!", display).unwrap();
             }
         }
         tdebugsln("", display).unwrap();

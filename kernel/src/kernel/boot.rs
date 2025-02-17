@@ -34,15 +34,14 @@ impl MemoryType {
             MemoryType::Faulty => crate::arch::output::sdebugsnp("Faulty RAM"),
             MemoryType::HardwareReserved => crate::arch::output::sdebugsnp("Hardware Reserved"),
             MemoryType::HardwareSpecific(val, allocatable) => {
-                    crate::arch::output::sdebugsnp("Hardware specific ");
-                    crate::arch::output::sdebugbnp(&crate::u32_as_u8_slice(*val));
-                    if *allocatable {
-                        crate::arch::output::sdebugsnp(", allocatable");
-                    } else {
-                        crate::arch::output::sdebugsnp(", unallocatable");
-                    }
-                    
-            },
+                crate::arch::output::sdebugsnp("Hardware specific ");
+                crate::arch::output::sdebugbnp(&crate::u32_as_u8_slice(*val));
+                if *allocatable {
+                    crate::arch::output::sdebugsnp(", allocatable");
+                } else {
+                    crate::arch::output::sdebugsnp(", unallocatable");
+                }
+            }
             MemoryType::Kernel => crate::arch::output::sdebugsnp("Kernel loaded"),
             MemoryType::Permanent => crate::arch::output::sdebugsnp("Flash"),
             MemoryType::Reserved => crate::arch::output::sdebugsnp("Reserved"),

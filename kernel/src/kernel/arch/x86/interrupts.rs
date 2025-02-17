@@ -2,7 +2,11 @@
 #![cfg(any(target_arch = "x86"))]
 #![allow(static_mut_refs)]
 
-use core::{alloc::{Allocator, Layout}, arch::asm, mem::MaybeUninit};
+use core::{
+    alloc::{Allocator, Layout},
+    arch::asm,
+    mem::MaybeUninit,
+};
 
 /// The syscall vector.
 pub const USER_SYSCALL_VECTOR: u16 = 0xA0;
@@ -23,9 +27,7 @@ pub fn interrupts_enabled() -> bool {
 /// Disables interrupts.
 #[aphrodite_proc_macros::kernel_item(InterruptsDisable)]
 pub fn disable_interrupts() {
-    unsafe {
-        asm!("cli")
-    }
+    unsafe { asm!("cli") }
 }
 
 /// PoppedInterrupts implements drop and restores the interrupts upon being dropped.
@@ -62,9 +64,7 @@ pub fn restore_irq(flags: PoppedInterrupts) {
         asm!(
             "push {0:e}", in(reg) flags
         );
-        asm!(
-            "popf"
-        );
+        asm!("popf");
     }
 }
 
@@ -73,7 +73,7 @@ pub fn restore_irq(flags: PoppedInterrupts) {
 #[repr(C)]
 struct IDTR {
     base: *const u8,
-    size: usize
+    size: usize,
 }
 
 unsafe impl Send for IDTR {}
@@ -83,53 +83,54 @@ unsafe impl Sync for IDTR {}
 fn load_idt(base: *const u8, size: usize) {
     static mut IDTR: MaybeUninit<IDTR> = MaybeUninit::uninit();
     unsafe {
-        IDTR.write(IDTR {
-            base,
-            size
-        });
+        IDTR.write(IDTR { base, size });
     }
-    unsafe {
-        asm!("lidt {}", in(reg) IDTR.as_ptr() as usize)
-    }
+    unsafe { asm!("lidt {}", in(reg) IDTR.as_ptr() as usize) }
 }
 
 /// Activate an IDT.
 #[aphrodite_proc_macros::kernel_item(ActivateIDT)]
 fn activate_idt(idt: Idt, alloc: crate::mem::MemoryMapAlloc) {
-    let mem = alloc.allocate(unsafe { Layout::from_size_align_unchecked(8*idt.len, 1) }).unwrap().as_mut_ptr();
+    let _mem = alloc
+        .allocate(unsafe { Layout::from_size_align_unchecked(8 * idt.len, 1) })
+        .unwrap()
+        .as_mut_ptr();
     for i in 0..idt.len {
-        let vector = idt.vectors[i];
-        let func = unsafe { idt.funcs[i].assume_init() } as usize as u64;
-        let user_callable = idt.user_callable[i];
-
+        let _vector = idt.vectors[i];
+        let _func = unsafe { idt.funcs[i].assume_init() } as usize as u64;
+        let _user_callable = idt.user_callable[i];
     }
 }
 
+/// An Interrupt Descriptor Table.
 #[derive(Clone, Copy)]
 pub struct Idt {
     vectors: [u16; 256],
-    funcs: [MaybeUninit<fn ()>; 256],
+    funcs: [MaybeUninit<fn()>; 256],
     user_callable: [bool; 256],
     len: usize,
 }
 
+/// A builder of an [Idt].
 #[derive(Clone, Copy)]
 pub struct IdtBuilder {
     vectors: [u16; 256],
-    funcs: [MaybeUninit<fn ()>; 256],
+    funcs: [MaybeUninit<fn()>; 256],
     user_callable: [bool; 256],
     idx: usize,
 }
 
 impl IdtBuilder {
+    /// Create a new IdtBuilder.
     pub fn new() -> Self {
-        IdtBuilder { 
+        IdtBuilder {
             vectors: [0; 256],
             funcs: [MaybeUninit::uninit(); 256],
             user_callable: [false; 256],
             idx: 0,
         }
     }
+    /// Add a function to this IdtBuilder.
     pub fn add_fn(&mut self, vector: u16, func: fn(), user_callable: bool) -> &mut Self {
         self.vectors[self.idx] = vector;
         self.funcs[self.idx].write(func);
@@ -137,12 +138,13 @@ impl IdtBuilder {
         self.idx += 1;
         self
     }
+    /// Finish creating this IdtBuilder and return an [Idt].
     pub fn finish(&self) -> Idt {
         Idt {
             vectors: self.vectors,
             funcs: self.funcs,
             user_callable: self.user_callable,
-            len: self.idx
+            len: self.idx,
         }
     }
 }

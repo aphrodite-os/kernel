@@ -1,3 +1,5 @@
+#!/bin/bash
+
 function get_version() {
     local TEMP_SUFFIX
     if git add . && git diff --quiet && git diff --cached --quiet 

@@ -1,5 +1,5 @@
 //! Architecture-independt memory section stuff.
-//! 
+//!
 //! arch::*::memory is the architecture-dependent counterpart.
 
 /// Section types for [MemorySection].
@@ -12,7 +12,7 @@ pub enum SectionType {
     CodeSection {
         /// Whether more powerful owners can jump to this if the owner
         /// is less powerful.
-        can_powerful_sections_jump: bool
+        can_powerful_sections_jump: bool,
     },
     /// A data section. Generally at least one of these for the kernel.
     DataSection,
@@ -21,7 +21,7 @@ pub enum SectionType {
     /// if they aren't directly supported by the hardware.
     TaskSection {
         /// Whether the section is busy.
-        busy: bool
+        busy: bool,
     },
 }
 
@@ -62,7 +62,7 @@ pub struct MemorySection {
 /// is called, which is not supposed to happen.
 pub unsafe trait MemorySections {
     /// Write the sections to an allocated region and then activate them.
-    /// 
+    ///
     /// This intentionally takes ownership of the MemorySections as it
     /// shouldn't be used after this is called.
     unsafe fn write(self) -> Result<(), crate::Error<'static>>;

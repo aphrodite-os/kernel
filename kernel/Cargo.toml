@@ -21,7 +21,3 @@ path = "src/arch_boot_entry/x86.rs"
 [lib]
 name = "aphrodite"
 path = "src/kernel/mod.rs"
-
-[[test]]
-name = "test_aphrodite"
-path = "src/include/test.rs"
