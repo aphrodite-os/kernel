@@ -1,6 +1,6 @@
 [build]
 target = "i686-unknown-none.json"
-rustflags = ["-Clink-arg=--script=link.x"]
+rustflags = ["-Clink-arg=--script=link.x", "-Clink-arg=--gc-sections"]
 
 [unstable]
 build-std = ["core", "alloc"]

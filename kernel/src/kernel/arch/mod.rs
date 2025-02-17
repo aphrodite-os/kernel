@@ -6,3 +6,14 @@ mod x86;
 pub mod example_impl;
 
 pub use x86::*;
+
+/// The enum returned by arch::*::get_arch.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum Architecture {
+    /// Returned by [example_impl]. If this is returned by arch::*::get_arch, something
+    /// is incredibly wrong and a panic should occur immediately.
+    #[default]
+    ExampleDummy,
+    /// 32-bit x86.
+    X86,
+}

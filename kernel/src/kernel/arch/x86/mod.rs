@@ -8,12 +8,18 @@ pub mod ports;
 pub mod output;
 pub mod egatext;
 pub mod paging;
+mod gdt;
+pub mod memory;
 
 mod constants;
 
 pub(self) use constants::*;
 use interrupts::{pop_irq, restore_irq};
 use ports::{inb, outb};
+
+pub const fn get_arch() -> super::Architecture {
+    super::Architecture::X86
+}
 
 #[aphrodite_proc_macros::kernel_item(PagingAvailabe)]
 pub fn paging_available() -> bool {

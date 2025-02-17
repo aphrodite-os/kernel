@@ -28,9 +28,21 @@ pub fn disable_interrupts() {
     }
 }
 
+/// PoppedInterrupts implements drop and restores the interrupts upon being dropped.
+/// This is useful in functions where you need interrupts disabled during it but also
+/// want to use functions like [Result::unwrap] or [Option::unwrap].
+#[derive(Clone)]
+pub struct PoppedInterrupts(u32);
+
+impl Drop for PoppedInterrupts {
+    fn drop(&mut self) {
+        restore_irq(self.clone());
+    }
+}
+
 /// Disables interrupts and returns the value of them.
 #[aphrodite_proc_macros::kernel_item(InterruptsPop)]
-pub fn pop_irq() -> u64 {
+pub fn pop_irq() -> PoppedInterrupts {
     let flags: u32;
     unsafe {
         asm!(
@@ -39,13 +51,13 @@ pub fn pop_irq() -> u64 {
             "pop {0:e}", out(reg) flags
         )
     }
-    flags as u64
+    PoppedInterrupts(flags)
 }
 
 /// Restores interrupts after a [pop_irq] call.
 #[aphrodite_proc_macros::kernel_item(InterruptsRestore)]
-pub fn restore_irq(flags: u64) {
-    let flags = flags as u32;
+pub fn restore_irq(flags: PoppedInterrupts) {
+    let flags = flags.0;
     unsafe {
         asm!(
             "push {0:e}", in(reg) flags
@@ -87,9 +99,8 @@ fn activate_idt(idt: Idt, alloc: crate::mem::MemoryMapAlloc) {
     let mem = alloc.allocate(unsafe { Layout::from_size_align_unchecked(8*idt.len, 1) }).unwrap().as_mut_ptr();
     for i in 0..idt.len {
         let vector = idt.vectors[i];
-        let func = unsafe { idt.funcs[i].assume_init() } as usize as u32;
+        let func = unsafe { idt.funcs[i].assume_init() } as usize as u64;
         let user_callable = idt.user_callable[i];
-        let output: u64 = (func & 0b1111111111111111) as u64;
 
     }
 }

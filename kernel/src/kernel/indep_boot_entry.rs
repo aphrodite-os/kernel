@@ -17,6 +17,7 @@ fn indep_boot_entry(
     display: Option<&dyn crate::display::TextDisplay>,
     #[allow(non_snake_case)] BI: &crate::boot::BootInfo,
 ) -> ! {
+    assert_ne!(crate::arch::get_arch(), crate::arch::Architecture::ExampleDummy);
     crate::arch::output::sdebugsln("IndepBootEntry called");
 
     let display = display.unwrap_or(&NoneTextDisplay {});

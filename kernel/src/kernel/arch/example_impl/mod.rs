@@ -7,6 +7,10 @@
 //! actual architecture, of course):
 //! #![cfg(any(target_arch = "arch"))]
 
+pub const fn get_arch() -> super::Architecture {
+    super::Architecture::ExampleDummy
+}
+
 pub mod interrupts {
     //! Interrupt-related functions.
 

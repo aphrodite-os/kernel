@@ -1,6 +1,9 @@
 //! This provides raw methods for internal kernel usage for the Aphrodite kernel. See aphrodite_user for userspace.
 #![no_std]
 #![warn(missing_docs)]
+#![warn(rustdoc::missing_crate_level_docs)]
+#![deny(rustdoc::invalid_html_tags)]
+#![deny(rustdoc::invalid_rust_codeblocks)]
 // tidy-alphabetical-start
 #![feature(ptr_metadata)]
 #![feature(const_trait_impl)]
@@ -31,9 +34,10 @@ pub mod output;
 pub mod psfont;
 mod traits;
 mod util;
+pub mod memsections;
 
 #[macro_use]
-mod cfg;
+pub(crate) mod cfg;
 
 #[allow(unused_imports)] // if there are no constants, then it gives a warning
 pub use constants::*;
