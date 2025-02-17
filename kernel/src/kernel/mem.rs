@@ -322,6 +322,9 @@ impl<'a> MemoryMapAlloc<'a> {
 
     /// Check to see if any allocations contain the given address. Returns true if so.
     fn check_addr(&self, addr: u64) -> bool {
+        if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
+            return false;
+        }
         if addr >= (self.allocationheader as u64)
             && addr < (self.allocationheader as u64 + unsafe { *self.allocationheader }.len)
         {
@@ -338,6 +341,9 @@ impl<'a> MemoryMapAlloc<'a> {
 
     /// Check to see if a range of addresses have any allocations within. Returns true if so.
     fn check_range(&self, addr: Range<u64>) -> bool {
+        if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
+            return false;
+        }
         for addr in addr {
             // REALLY inefficient, but I don't think there's a better way.
             if self.check_addr(addr) {
@@ -519,6 +525,7 @@ unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
                 continue;
             }
         }
+
         if addr == 0 {
             unsafe {
                 LAST_MEMMAP_ERR = Err(crate::Error::new(
@@ -528,6 +535,14 @@ unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
             }
             return Err(core::alloc::AllocError {});
         }
+
+        if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
+            return Ok(NonNull::from_raw_parts(
+                NonNull::<u8>::without_provenance(NonZero::new(addr as usize).unwrap()),
+                layout.size(),
+            ));
+        }
+
         if let Err(err) = self.add_allocation(Allocation {
             used: true,
             addr,
@@ -545,6 +560,9 @@ unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
 
     unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, _layout: core::alloc::Layout) {
         unsafe { LAST_MEMMAP_ERR = Ok(()) }
+        if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
+            return;
+        }
         let addr = ptr.addr().get() as u64;
         if self.allocations == core::ptr::null_mut() {
             unsafe {
