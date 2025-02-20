@@ -76,6 +76,18 @@ fn get_allocator() -> Option<&'static MemoryMapAlloc<'static>> {
     }
 }
 
+/// The unsafe counterpart of [MemMapAlloc()]. Doesn't check if the allocator is initalized.
+/// Internally, uses [MaybeUninit::assume_init_ref].
+/// 
+/// # Safety
+///
+/// Calling this instead of [MemMapAlloc] or when the allocator is uninitalized causes
+/// undefined behavior; check [MaybeUninit::assume_init_ref] for safety guarantees.
+pub unsafe fn get_allocator_unchecked() -> &'static MemoryMapAlloc<'static> {
+    #[allow(static_mut_refs)]
+    unsafe { ALLOCATOR.assume_init_ref() }
+}
+
 #[kernel_item(MemMapAllocInit)]
 fn memory_map_alloc_init(memmap: crate::boot::MemoryMap) -> Result<(), crate::Error<'static>> {
     #[allow(static_mut_refs)]
@@ -107,19 +119,19 @@ pub struct MemoryMapAlloc<'a> {
 }
 
 /// Too many allocations have been created, pushing the size of [MemoryMapAlloc::allocations] over [MemoryMapAlloc::max_allocations_size].
-const TOO_MANY_ALLOCATIONS: i16 = -2;
+pub const TOO_MANY_ALLOCATIONS: i16 = -2;
 
 /// There isn't enough space for 32 allocations(the minimum available).
 pub const ALLOCATIONS_NOT_ENOUGH_SPACE: i16 = -3;
 
 /// The index provided to [MemoryMapAlloc::extend_allocation] is too big.
-const EXTEND_ALLOCATION_INVALID_INDEX: i16 = -4;
+pub const EXTEND_ALLOCATION_INVALID_INDEX: i16 = -4;
 
 /// The allocation provided to [MemoryMapAlloc::extend_allocation] is unused.
-const EXTEND_ALLOCATION_ALLOCATION_UNUSED: i16 = -5;
+pub const EXTEND_ALLOCATION_ALLOCATION_UNUSED: i16 = -5;
 
 /// The allocation provided to [MemoryMapAlloc::extend_allocation], if extended, would extend into another allocation.
-const EXTEND_ALLOCATION_OTHER_ALLOCATION: i16 = -6;
+pub const EXTEND_ALLOCATION_OTHER_ALLOCATION: i16 = -6;
 
 impl<'a> Debug for MemoryMapAlloc<'a> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

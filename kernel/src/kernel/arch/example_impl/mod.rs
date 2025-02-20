@@ -7,6 +7,9 @@
 //! actual architecture, of course):
 //! #![cfg(any(target_arch = "arch"))]
 
+// DO NOT have this in your actual code:
+#![allow(dead_code)]
+
 /// Returns the most specific architecture available.
 pub const fn get_arch() -> super::Architecture {
     super::Architecture::ExampleDummy

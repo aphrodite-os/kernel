@@ -4,6 +4,7 @@
 #![warn(rustdoc::missing_crate_level_docs)]
 #![deny(rustdoc::invalid_html_tags)]
 #![deny(rustdoc::invalid_rust_codeblocks)]
+#![deny(unsafe_op_in_unsafe_fn)]
 // tidy-alphabetical-start
 #![feature(ptr_metadata)]
 #![feature(const_trait_impl)]
@@ -48,10 +49,12 @@ pub use util::*;
 #[allow(unused_imports)] // if there are no traits, then it gives a warning
 pub use traits::*;
 
+/// Returns the version of aphrodite.
 pub const fn version() -> &'static str {
     env!("VERSION")
 }
 
+/// Returns the version of the config for aphrodite.
 pub const fn cfg_version() -> &'static str {
     env!("CFG_VERSION")
 }

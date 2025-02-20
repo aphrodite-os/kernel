@@ -22,7 +22,8 @@ fn indep_boot_entry(
 ) -> ! {
     assert_ne!(
         crate::arch::get_arch(),
-        crate::arch::Architecture::ExampleDummy
+        crate::arch::Architecture::ExampleDummy,
+        "Somehow the kernel successfully booted into IndepBootEntry with a dummy architecture"
     );
     crate::arch::output::sdebugsln("IndepBootEntry called");
 

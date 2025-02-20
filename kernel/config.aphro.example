@@ -4,7 +4,7 @@ CONT_WITH_DIFFERENT_VERSION=true
 
 # Begin metadata
 
-# Set VERSION=generate to attempt to autogenerate a version based on git information
+# Set VERSION=generate(or unset) to attempt to autogenerate a version based on git information
 VERSION=generate
 # SUFFIX is unset
 

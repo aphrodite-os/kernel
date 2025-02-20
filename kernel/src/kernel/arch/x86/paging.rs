@@ -13,7 +13,7 @@ pub enum PageDirectoryEntry {
 }
 
 impl PageDirectoryEntry {
-    const fn create_fourmb(
+    pub const fn create_fourmb(
         mut bits32to22: u16,
         bits39to32: u8,
         pat: bool,
@@ -64,7 +64,7 @@ impl PageDirectoryEntry {
         Self::FourMb(out)
     }
 
-    const fn create_other(
+    pub const fn create_other(
         mut bits31to12: u32,
         pat: bool,
         mut available: u8,
