@@ -93,6 +93,7 @@
     function compile_one {
         target=$1
         real_target=${!target}
+        real_target=$(basename $real_target)
         if [[ $check = "true" ]]; then
             echo "[INFO] Checking target $target(with rust target of $real_target)"
             cargo check --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
