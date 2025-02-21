@@ -76,6 +76,20 @@ fn get_allocator() -> Option<&'static MemoryMapAlloc<'static>> {
     }
 }
 
+/// The unsafe counterpart of [MemMapAlloc()]. Doesn't check if the allocator is initalized.
+/// Internally, uses [MaybeUninit::assume_init_ref].
+///
+/// # Safety
+///
+/// Calling this instead of [MemMapAlloc] or when the allocator is uninitalized causes
+/// undefined behavior; check [MaybeUninit::assume_init_ref] for safety guarantees.
+pub unsafe fn get_allocator_unchecked() -> &'static MemoryMapAlloc<'static> {
+    #[allow(static_mut_refs)]
+    unsafe {
+        ALLOCATOR.assume_init_ref()
+    }
+}
+
 #[kernel_item(MemMapAllocInit)]
 fn memory_map_alloc_init(memmap: crate::boot::MemoryMap) -> Result<(), crate::Error<'static>> {
     #[allow(static_mut_refs)]
@@ -186,16 +200,12 @@ impl<'a> MemoryMapAlloc<'a> {
                 }
             }
         }
-
-        // Check if there is no free memory with space for 32 allocations
         if out.allocations == core::ptr::null_mut() {
             return Err(crate::Error::new(
                 "no free memory with space for 32 allocations",
                 ALLOCATIONS_NOT_ENOUGH_SPACE,
             ));
         }
-
-        // Start of the unsafe block
         unsafe {
             (*out.allocations) = Allocation {
                 used: false,
@@ -207,12 +217,10 @@ impl<'a> MemoryMapAlloc<'a> {
                 addr: out.allocations as usize as u64,
                 len: (size_of::<Allocation>() * 32) as u64,
                 num_allocations: 1,
-            };
+            }
         }
-
         Ok(out)
     }
-}
 
     /// Returns the number of allocations.
     pub fn number_of_allocations(&self) -> u64 {
@@ -229,55 +237,81 @@ impl<'a> MemoryMapAlloc<'a> {
     }
 
     /// Add an allocation to [MemoryMapAlloc::allocations]. It will overwrite allocations with `used` set to false.
-    fn add_allocation(&self, mut allocation: Allocation) -> Result<(), crate::Error<'static>> {
+    fn add_allocation(&self, allocation: Allocation) -> Result<(), crate::Error<'static>> {
         if !allocation.used {
             crate::arch::output::swarningsln("Adding unused allocation");
         }
-        for existing_alloc in self.allocations_iter() {
-            let existing = unsafe { *existing_alloc }.clone();
-            if existing.addr + existing.len == allocation.addr {
-                // Contiguous allocation, merge them
-                allocation.len += existing.len;
-                allocation.addr = existing.addr;
-                // Update the existing allocation
-                unsafe { *existing_alloc }.used = false;
-            } else if !existing.used {
-                // Found an unused allocation slot, reuse it
-                unsafe { (*existing_alloc) = allocation };
+        for alloc in self.allocations_iter() {
+            if !unsafe { *alloc }.used {
+                unsafe { (*alloc) = allocation }
                 return Ok(());
             }
         }
-        // If we reach this point, it means we need to add a new allocation
-        // Increment the number of allocations
-        (*self.allocationheader).num_allocations += 1;
-    
-        let num_allocations = (*self.allocationheader).num_allocations;
-    
-        // Check if there is enough space for the new allocation
-        if (*self.allocations).len < (core::mem::size_of::<Allocation>() as u64 * num_allocations) {
-            if (*self.allocationheader).len + core::mem::size_of::<Allocation>() as u64 >= self.max_allocations_size {
+
+        unsafe { *self.allocationheader }.num_allocations += 1;
+
+        let num_allocations = unsafe { *self.allocationheader }.num_allocations;
+
+        if unsafe { *self.allocations }.len < (size_of::<Allocation>() as u64 * (num_allocations)) {
+            if unsafe { *self.allocationheader }.len + size_of::<Allocation>() as u64
+                >= self.max_allocations_size
+            {
                 return Err(crate::Error::new(
                     "not enough space for another allocation",
                     TOO_MANY_ALLOCATIONS,
                 ));
             }
-    
-            // Attempt to extend the allocation header
-            let res = self.extend_allocation_header(core::mem::size_of::<Allocation>() as u64);
+
+            let res = self.extend_allocation_header(size_of::<Allocation>() as u64);
             if let Err(err) = res {
-                (*self.allocationheader).num_allocations -= 1; // Rollback the allocation count
+                unsafe { *self.allocationheader }.num_allocations -= 1;
                 return Err(err);
             }
         }
-    
-        // Calculate the new allocation pointer
-        let new_alloc = (self.allocations as usize + (core::mem::size_of::<Allocation>() * num_allocations as usize)) as *mut Allocation;
-    
-        // Assign the allocation
-        *new_alloc = allocation;
-    
+
+        let new_alloc = (self.allocations as usize
+            + (size_of::<Allocation>() * (num_allocations) as usize))
+            as *const Allocation as *mut Allocation;
+
+        unsafe { (*new_alloc) = allocation }
+
         Ok(())
-    } 
+    }
+
+    /// Extend an allocation. This has numerous checks, so please use this
+    /// instead of manually changing [Allocation::len]!
+    fn extend_allocation(&self, idx: u64, by: u64) -> Result<(), crate::Error<'static>> {
+        if idx > unsafe { *self.allocationheader }.num_allocations {
+            return Err(crate::Error::new(
+                "the index provided to extend_allocation is too large",
+                EXTEND_ALLOCATION_INVALID_INDEX,
+            ));
+        }
+        let alloc = (self.allocations as usize + (size_of::<Allocation>() * idx as usize))
+            as *const Allocation as *mut Allocation;
+
+        if !unsafe { *alloc }.used {
+            return Err(crate::Error::new(
+                "the allocation provided to extend_allocation is unused",
+                EXTEND_ALLOCATION_ALLOCATION_UNUSED,
+            ));
+        }
+
+        if self.check_range(
+            (unsafe { *alloc }.addr + unsafe { *alloc }.len)
+                ..(unsafe { *alloc }.addr + unsafe { *alloc }.len + by),
+        ) {
+            return Err(crate::Error::new(
+                "the allocation, if extended, would extend into another allocation",
+                EXTEND_ALLOCATION_OTHER_ALLOCATION,
+            ));
+        }
+
+        unsafe {
+            (*alloc).len += by;
+        }
+        Ok(())
+    }
 
     /// Extend the allocation header. This has numerous checks, so please use this
     /// instead of manually changing [AllocationHeader::len]!
@@ -332,7 +366,7 @@ impl<'a> MemoryMapAlloc<'a> {
         }
         false
     }
-
+}
 
 /// Error returned when free memory is not available.
 pub const FREE_MEMORY_UNAVAILABLE: i16 = -1;
@@ -426,21 +460,19 @@ unsafe impl<'a> Allocator for MaybeMemoryMapAlloc<'a> {
         }
         unsafe { self.alloc.assume_init_ref() }.allocate(layout)
     }
-}
-    unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, _layout: core::alloc::Layout) {
-        let addr = ptr.as_ptr() as usize; // Convert the pointer to a usize for address comparison
-    
-        for allocation in self.allocations_iter() {
-            let alloc = unsafe { *allocation }; // Dereference the allocation safely
-            if alloc.addr <= addr && addr < alloc.addr + alloc.len {
-                // Found the allocation, mark it as unused
-                alloc.used = false; // Mark the allocation as unused
-                return; // Exit the function after deallocating
+    unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: core::alloc::Layout) {
+        if !self.initalized {
+            unsafe {
+                LAST_MEMMAP_ERR = Err(crate::Error::new(
+                    "MaybeMemoryMapAlloc not initalized",
+                    MAYBE_MEMORY_MAP_ALLOC_UNINITALIZED,
+                ))
             }
+            return;
         }
-    
-            unsafe { self.alloc.assume_init_ref().deallocate(ptr, layout) }
-    }    
+        unsafe { self.alloc.assume_init_ref().deallocate(ptr, layout) }
+    }
+}
 
 unsafe impl<'a> GlobalAlloc for MemoryMapAlloc<'a> {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
@@ -507,102 +539,89 @@ unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
                 continue;
             }
         }
-    }
-}
-unsafe fn allocate(&self, layout: core::alloc::Layout) -> Result<core::ptr::NonNull<u8>, core::alloc::AllocError> {
-    if addr == 0 {
-        unsafe {
-            LAST_MEMMAP_ERR = Err(crate::Error::new(
-                "Free memory of the correct size and alignment couldn't be found",
-                FREE_MEMORY_UNAVAILABLE,
-            ))
-        }
-        return Err(core::alloc::AllocError {});
-    }
 
-    if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
-        return Ok(NonNull::from_raw_parts(
-            NonNull::<u8>::without_provenance(NonZero::new(addr as usize).unwrap()),
-            layout.size(),
-        ));
-    }
-}
-
-unsafe fn allocate(&self, layout: core::alloc::Layout) -> Result<core::ptr::NonNull<u8>, core::alloc::AllocError> {
-    if let Err(err) = self.add_allocation(Allocation {
-        used: true,
-        addr,
-        len: layout.size() as u64,
-    }) {
-        unsafe { LAST_MEMMAP_ERR = Err(err) }
-        return Err(core::alloc::AllocError {});
-    }
-}
-        
-fn create_nonnull_slice(addr: *mut u8, layout: Layout) -> Result<NonNull<[u8]>, core::alloc::AllocError> {
-    Ok(NonNull::slice_from_raw_parts(
-        NonNull::new(addr).ok_or(core::alloc::AllocError)?,
-        layout.size(),
-    ))
-}
-
-
-
-        unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, _layout: core::alloc::Layout) -> Result<(), crate::Error> {
-            unsafe { LAST_MEMMAP_ERR = Ok(()) }
-            if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
-                return Ok(());
-            }
-            let addr = ptr.addr().get() as u64;
-            if self.allocations == core::ptr::null_mut() {
-                unsafe {
-                    LAST_MEMMAP_ERR = Err(crate::Error::new(
-                        "Allocations storage not set up",
-                        FREE_MEMORY_UNAVAILABLE,
-                    ))
-                }
-                return Err(crate::Error::new(
-                    "Allocations storage not set up",
-                    FREE_MEMORY_UNAVAILABLE,
-                ));
-            }
-            crate::arch::output::sdebugsln("Searching for allocation");
-            crate::arch::output::sdebugbln(&crate::u64_as_u8_slice(
-                unsafe { *self.allocationheader }.num_allocations,
-            ));
-            for allocation in self.allocations_iter() {
-                crate::arch::output::sdebugsln("Allocation");
-                let alloc = unsafe { *allocation }.clone();
-                if !alloc.used {
-                    crate::arch::output::sdebugs("Unused, addr is ");
-                    if alloc.addr == addr {
-                        crate::arch::output::sdebugsnp("correct and ");
-                    } else {
-                        crate::arch::output::sdebugsnp("incorrect and ");
-                    }
-                    if alloc.addr == 0 {
-                        crate::arch::output::sdebugsnpln("null");
-                    } else {
-                        crate::arch::output::sdebugsnpln("non-null");
-                    }
-                    continue;
-                }
-                crate::arch::output::sdebugsln("Used");
-                if alloc.addr == addr {
-                    unsafe { *allocation }.used = false;
-                    return Ok(());
-                }
-            }
-            crate::arch::output::sdebugsln("Memory unallocated");
-            // Memory not allocated, something is up, this is put after the loop to prevent a costly call to check_addr
+        if addr == 0 {
             unsafe {
                 LAST_MEMMAP_ERR = Err(crate::Error::new(
-                    "memory not allocated",
-                    MEMORY_NOT_ALLOCATED,
+                    "Free memory of the correct size and alignment couldn't be found",
+                    FREE_MEMORY_UNAVAILABLE,
                 ))
             }
-            Err(crate::Error::new(
+            return Err(core::alloc::AllocError {});
+        }
+
+        if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
+            return Ok(NonNull::from_raw_parts(
+                NonNull::<u8>::without_provenance(NonZero::new(addr as usize).unwrap()),
+                layout.size(),
+            ));
+        }
+
+        if let Err(err) = self.add_allocation(Allocation {
+            used: true,
+            addr,
+            len: layout.size() as u64,
+        }) {
+            unsafe { LAST_MEMMAP_ERR = Err(err) }
+            return Err(core::alloc::AllocError {});
+        }
+
+        Ok(NonNull::from_raw_parts(
+            NonNull::<u8>::without_provenance(NonZero::new(addr as usize).unwrap()),
+            layout.size(),
+        ))
+    }
+
+    unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, _layout: core::alloc::Layout) {
+        unsafe { LAST_MEMMAP_ERR = Ok(()) }
+        if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
+            return;
+        }
+        let addr = ptr.addr().get() as u64;
+        if self.allocations == core::ptr::null_mut() {
+            unsafe {
+                LAST_MEMMAP_ERR = Err(crate::Error::new(
+                    "Allocations storage not set up",
+                    FREE_MEMORY_UNAVAILABLE,
+                ))
+            }
+            return;
+        }
+        crate::arch::output::sdebugsln("Searching for allocation");
+        crate::arch::output::sdebugbln(&crate::u64_as_u8_slice(
+            unsafe { *self.allocationheader }.num_allocations,
+        ));
+        for allocation in self.allocations_iter() {
+            crate::arch::output::sdebugsln("Allocation");
+            let alloc = unsafe { *allocation }.clone();
+            if !alloc.used {
+                crate::arch::output::sdebugs("Unused, addr is ");
+                if alloc.addr == addr {
+                    crate::arch::output::sdebugsnp("correct and ");
+                } else {
+                    crate::arch::output::sdebugsnp("incorrect and ");
+                }
+                if alloc.addr == 0 {
+                    crate::arch::output::sdebugsnpln("null");
+                } else {
+                    crate::arch::output::sdebugsnpln("non-null");
+                }
+                continue;
+            }
+            crate::arch::output::sdebugsln("Used");
+            if alloc.addr == addr {
+                unsafe { *allocation }.used = false;
+                return;
+            }
+        }
+        crate::arch::output::sdebugsln("Memory unallocated");
+        // Memory not allocated, something is up, this is put after the loop to prevent a costly call to check_addr
+        unsafe {
+            LAST_MEMMAP_ERR = Err(crate::Error::new(
                 "memory not allocated",
                 MEMORY_NOT_ALLOCATED,
             ))
         }
+        return;
+    }
+}
