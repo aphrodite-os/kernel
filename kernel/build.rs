@@ -40,7 +40,9 @@ fn main() {
 
     println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_BUILD_GRUB, values("true", "false", none()))"#);
 
-    println!(r#"cargo:rustc-check-cfg=cfg(CONFIG_MEMORY_UNION_ALL, values("true", "false", none()))"#);
+    println!(
+        r#"cargo:rustc-check-cfg=cfg(CONFIG_MEMORY_UNION_ALL, values("true", "false", none()))"#
+    );
     // End checks
 
     // Configuration name used when a config is required but should always evaluate to true

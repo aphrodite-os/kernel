@@ -78,14 +78,16 @@ fn get_allocator() -> Option<&'static MemoryMapAlloc<'static>> {
 
 /// The unsafe counterpart of [MemMapAlloc()]. Doesn't check if the allocator is initalized.
 /// Internally, uses [MaybeUninit::assume_init_ref].
-/// 
+///
 /// # Safety
 ///
 /// Calling this instead of [MemMapAlloc] or when the allocator is uninitalized causes
 /// undefined behavior; check [MaybeUninit::assume_init_ref] for safety guarantees.
 pub unsafe fn get_allocator_unchecked() -> &'static MemoryMapAlloc<'static> {
     #[allow(static_mut_refs)]
-    unsafe { ALLOCATOR.assume_init_ref() }
+    unsafe {
+        ALLOCATOR.assume_init_ref()
+    }
 }
 
 #[kernel_item(MemMapAllocInit)]
