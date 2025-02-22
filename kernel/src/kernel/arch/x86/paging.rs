@@ -13,6 +13,8 @@ pub enum PageDirectoryEntry {
 }
 
 impl PageDirectoryEntry {
+    /// Creates a new 4MB page directory entry.
+    #[allow(missing_docs)]
     pub const fn create_fourmb(
         mut bits32to22: u16,
         bits39to32: u8,
@@ -64,6 +66,8 @@ impl PageDirectoryEntry {
         Self::FourMb(out)
     }
 
+    /// Creates a new smaller page directory entry.
+    #[allow(missing_docs)]
     pub const fn create_other(
         mut bits31to12: u32,
         pat: bool,
@@ -114,6 +118,7 @@ impl PageDirectoryEntry {
 }
 
 /// Kind of cursed, but DSTs aren't allowed in statics.
+#[allow(dead_code)]
 static mut PAGE_DIRECTORY: PageDirectoryEntry =
     PageDirectoryEntry::create_other(0, false, 0, false, false, false, false, false, false, false);
 
