@@ -1,5 +1,5 @@
 //! Functions to output to various things
-#![cfg(any(target_arch = "x86"))]
+#![cfg(target_arch = "x86")]
 
 use super::ports;
 use paste::paste;

@@ -1,4 +1,5 @@
 //! Functions and types related to paging.
+#![cfg(target_arch = "x86")]
 
 use core::arch::asm;
 

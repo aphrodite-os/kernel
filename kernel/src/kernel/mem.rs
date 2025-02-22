@@ -303,7 +303,7 @@ impl<'a> MemoryMapAlloc<'a> {
         let mut i = 0;
         while i < num_allocs {
             let current = unsafe {
-                &mut *((self.allocations as usize + size_of::<Allocation>() * (i as usize)) 
+                &mut *((self.allocations as usize + size_of::<Allocation>() * (i as usize))
                     as *mut Allocation)
             };
 
@@ -524,7 +524,7 @@ unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
             if alloc.used && alloc.addr == addr {
                 // Zero the memory
                 unsafe { core::ptr::write_bytes(addr as *mut u8, 0, alloc.len as usize) };
-                
+
                 // Mark as free
                 alloc.used = false;
                 found = true;

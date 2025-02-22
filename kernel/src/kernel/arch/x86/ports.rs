@@ -1,5 +1,5 @@
 //! Provides utilities for interacting with assembly ports
-#![cfg(any(target_arch = "x86"))]
+#![cfg(target_arch = "x86")]
 
 use core::arch::asm;
 

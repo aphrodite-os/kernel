@@ -1,5 +1,5 @@
 //! Provides interrupt-related functions
-#![cfg(any(target_arch = "x86"))]
+#![cfg(target_arch = "x86")]
 #![allow(static_mut_refs)]
 
 use core::{
@@ -69,21 +69,20 @@ pub fn restore_irq(flags: PoppedInterrupts) {
 }
 
 /// The IDTR. Used internally in [load_idt].
-#[repr(packed)]
-#[repr(C)]
-struct IDTR {
+#[repr(C, packed)]
+struct Idtr {
     base: *const u8,
     size: usize,
 }
 
-unsafe impl Send for IDTR {}
-unsafe impl Sync for IDTR {}
+unsafe impl Send for Idtr {}
+unsafe impl Sync for Idtr {}
 
 /// Loads an interrupt descriptor table.
 fn load_idt(base: *const u8, size: usize) {
-    static mut IDTR: MaybeUninit<IDTR> = MaybeUninit::uninit();
+    static mut IDTR: MaybeUninit<Idtr> = MaybeUninit::uninit();
     unsafe {
-        IDTR.write(IDTR { base, size });
+        IDTR.write(Idtr { base, size });
     }
     unsafe { asm!("lidt {}", in(reg) IDTR.as_ptr() as usize) }
 }
@@ -145,6 +144,17 @@ impl IdtBuilder {
             funcs: self.funcs,
             user_callable: self.user_callable,
             len: self.idx,
+        }
+    }
+}
+
+impl Default for IdtBuilder {
+    fn default() -> Self {
+        IdtBuilder {
+            vectors: [0; 256],
+            funcs: [MaybeUninit::uninit(); 256],
+            user_callable: [false; 256],
+            idx: 0,
         }
     }
 }

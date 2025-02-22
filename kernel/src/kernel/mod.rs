@@ -1,6 +1,7 @@
 //! This provides raw methods for internal kernel usage for the Aphrodite kernel. See aphrodite_user for userspace.
 #![no_std]
 #![warn(missing_docs)]
+#![warn(clippy::missing_docs_in_private_items)]
 #![warn(rustdoc::missing_crate_level_docs)]
 #![deny(rustdoc::invalid_html_tags)]
 #![deny(rustdoc::invalid_rust_codeblocks)]

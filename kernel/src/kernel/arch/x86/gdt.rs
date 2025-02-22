@@ -1,4 +1,5 @@
 //! GDT initalization.
+#![cfg(target_arch = "x86")]
 
 use core::alloc::Layout;
 

@@ -1,4 +1,5 @@
 //! Hardware-level memory sections. Unimplemented for certain hardware, x86 implements with GDT.
+#![cfg(target_arch = "x86")]
 
 use core::arch::asm;
 

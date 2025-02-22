@@ -95,6 +95,16 @@ pub mod interrupts {
             }
         }
     }
+
+    impl Default for IdtBuilder {
+        fn default() -> Self {
+            IdtBuilder {
+                vectors: [0; 256],
+                funcs: [MaybeUninit::uninit(); 256],
+                idx: 0,
+            }
+        }
+    }
 }
 
 pub mod output {

@@ -96,10 +96,13 @@
         real_target=$(basename $real_target)
         if [[ $check = "true" ]]; then
             echo "[INFO] Checking target $target(with rust target of $real_target)"
-            cargo check --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
+            cargo clippy --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
         else
             echo "[INFO] Compiling target $target(with rust target of $real_target)"
-            cargo build --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
+            echo "[INFO] Running clippy"
+            cargo clippy --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
+            echo "[INFO] Building"
+            cargo build --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target 2>/dev/null
             cp "target/$(echo $real_target | sed 's/\.json//')/release/entrypoint_$target" kernel-$target
 
             if [[ "$CONFIG_BUILD_GRUB" = "true" ]]; then

@@ -1,5 +1,5 @@
 //! Stuff for writing and reading to the EGA text buffer.
-#![cfg(any(target_arch = "x86"))]
+#![cfg(target_arch = "x86")]
 
 use crate::display::Color;
 
@@ -109,6 +109,6 @@ impl FramebufferInfo {
         super::ports::outb(0x3D4, 0x0E);
         addr |= (super::ports::inb(0x3D5) as u32) << 8;
 
-        return (addr % self.width, addr / self.width);
+        (addr % self.width, addr / self.width)
     }
 }

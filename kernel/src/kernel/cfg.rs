@@ -7,7 +7,7 @@ macro_rules! cfg_int {
         paste::paste! {
             {
                 let cfg = env!($cfg).as_bytes();
-                crate::[< str_as_ $type >](cfg)
+                $crate::[< str_as_ $type >](cfg)
             }
         }
     };

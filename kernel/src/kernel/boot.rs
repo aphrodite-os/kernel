@@ -126,7 +126,7 @@ impl core::iter::Iterator for MemoryMap {
     type Item = MemoryMapping;
     fn next(&mut self) -> Option<Self::Item> {
         self.idx += 1;
-        if self.sections.len() <= self.idx - 1 {
+        if self.sections.len() < self.idx {
             self.reset_iter();
             return None;
         }

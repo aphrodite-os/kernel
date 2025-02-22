@@ -1,5 +1,5 @@
 //! General x86 functions
-#![cfg(any(target_arch = "x86"))]
+#![cfg(target_arch = "x86")]
 
 use core::arch::asm;
 
@@ -13,7 +13,7 @@ pub mod ports;
 
 mod constants;
 
-pub(self) use constants::*;
+use constants::*;
 use interrupts::{pop_irq, restore_irq};
 use ports::{inb, outb};
 
