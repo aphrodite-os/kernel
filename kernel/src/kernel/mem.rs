@@ -236,104 +236,6 @@ impl<'a> MemoryMapAlloc<'a> {
         }
     }
 
-    /// Add an allocation to [MemoryMapAlloc::allocations]. It will overwrite allocations with `used` set to false.
-    fn add_allocation(&self, allocation: Allocation) -> Result<(), crate::Error<'static>> {
-        if !allocation.used {
-            crate::arch::output::swarningsln("Adding unused allocation");
-        }
-        for alloc in self.allocations_iter() {
-            if !unsafe { *alloc }.used {
-                unsafe { (*alloc) = allocation }
-                return Ok(());
-            }
-        }
-
-        unsafe { *self.allocationheader }.num_allocations += 1;
-
-        let num_allocations = unsafe { *self.allocationheader }.num_allocations;
-
-        if unsafe { *self.allocations }.len < (size_of::<Allocation>() as u64 * (num_allocations)) {
-            if unsafe { *self.allocationheader }.len + size_of::<Allocation>() as u64
-                >= self.max_allocations_size
-            {
-                return Err(crate::Error::new(
-                    "not enough space for another allocation",
-                    TOO_MANY_ALLOCATIONS,
-                ));
-            }
-
-            let res = self.extend_allocation_header(size_of::<Allocation>() as u64);
-            if let Err(err) = res {
-                unsafe { *self.allocationheader }.num_allocations -= 1;
-                return Err(err);
-            }
-        }
-
-        let new_alloc = (self.allocations as usize
-            + (size_of::<Allocation>() * (num_allocations) as usize))
-            as *const Allocation as *mut Allocation;
-
-        unsafe { (*new_alloc) = allocation }
-
-        Ok(())
-    }
-
-    /// Extend an allocation. This has numerous checks, so please use this
-    /// instead of manually changing [Allocation::len]!
-    fn extend_allocation(&self, idx: u64, by: u64) -> Result<(), crate::Error<'static>> {
-        if idx > unsafe { *self.allocationheader }.num_allocations {
-            return Err(crate::Error::new(
-                "the index provided to extend_allocation is too large",
-                EXTEND_ALLOCATION_INVALID_INDEX,
-            ));
-        }
-        let alloc = (self.allocations as usize + (size_of::<Allocation>() * idx as usize))
-            as *const Allocation as *mut Allocation;
-
-        if !unsafe { *alloc }.used {
-            return Err(crate::Error::new(
-                "the allocation provided to extend_allocation is unused",
-                EXTEND_ALLOCATION_ALLOCATION_UNUSED,
-            ));
-        }
-
-        if self.check_range(
-            (unsafe { *alloc }.addr + unsafe { *alloc }.len)
-                ..(unsafe { *alloc }.addr + unsafe { *alloc }.len + by),
-        ) {
-            return Err(crate::Error::new(
-                "the allocation, if extended, would extend into another allocation",
-                EXTEND_ALLOCATION_OTHER_ALLOCATION,
-            ));
-        }
-
-        unsafe {
-            (*alloc).len += by;
-        }
-        Ok(())
-    }
-
-    /// Extend the allocation header. This has numerous checks, so please use this
-    /// instead of manually changing [AllocationHeader::len]!
-    fn extend_allocation_header(&self, by: u64) -> Result<(), crate::Error<'static>> {
-        let alloc = self.allocationheader;
-
-        if self.check_range(
-            (unsafe { *alloc }.addr + unsafe { *alloc }.len)
-                ..(unsafe { *alloc }.addr + unsafe { *alloc }.len + by),
-        ) {
-            return Err(crate::Error::new(
-                "the allocation header, if extended, would extend into another allocation",
-                EXTEND_ALLOCATION_OTHER_ALLOCATION,
-            ));
-        }
-
-        unsafe {
-            (*alloc).len += by;
-        }
-        Ok(())
-    }
-
     /// Check to see if any allocations contain the given address. Returns true if so.
     fn check_addr(&self, addr: u64) -> bool {
         if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
@@ -367,31 +269,14 @@ impl<'a> MemoryMapAlloc<'a> {
         false
     }
 
-    /// Find an allocation entry by its address
-    fn find_allocation_by_addr(&self, addr: u64) -> Option<(*mut Allocation, usize)> {
-        if self.allocations.is_null() {
-            return None;
-        }
-
-        for i in 0..unsafe { (*self.allocationheader).num_allocations } {
-            let current = unsafe {
-                &mut *((self.allocations as usize + size_of::<Allocation>() * (i as usize)) 
-                    as *mut Allocation)
-            };
-            
-            if current.used && current.addr == addr {
-                return Some((current as *mut Allocation, i as usize));
-            }
-        }
-        None
-    }
-
+    #[allow(unused)]
     fn output_number(&self, num: u64, prefix: &str) {
         crate::arch::output::sdebugs(prefix);
         crate::arch::output::sdebugb(&crate::u64_as_u8_slice(num));
     }
 
     /// Print debug info about an allocation
+    #[allow(unused)]
     fn debug_allocation_info(&self, allocation: &Allocation) {
         self.output_number(allocation.addr, "Allocation at 0x");
         self.output_number(allocation.len, " with length 0x");
@@ -400,32 +285,15 @@ impl<'a> MemoryMapAlloc<'a> {
     }
 
     /// Zero out a memory region
+    #[allow(unused)]
     unsafe fn zero_memory_region(&self, addr: u64, len: u64) {
         unsafe {
             core::ptr::write_bytes(addr as *mut u8, 0, len as usize);
         }
     }
 
-    /// Finds an allocation by address
-    fn find_allocation(&self, addr: u64) -> Option<*mut Allocation> {
-        if self.allocations.is_null() {
-            return None;
-        }
-
-        let num_allocs = unsafe { (*self.allocationheader).num_allocations };
-        for i in 0..num_allocs {
-            let current = unsafe {
-                &mut *((self.allocations as usize + size_of::<Allocation>() * (i as usize)) 
-                    as *mut Allocation)
-            };
-            if current.used && current.addr == addr {
-                return Some(current as *mut Allocation);
-            }
-        }
-        None
-    }
-
     /// Try to merge adjacent free blocks
+    #[allow(unused)]
     fn try_merge_blocks(&self) {
         if self.allocations.is_null() {
             return;
@@ -716,15 +584,6 @@ impl<'a> MaybeMemoryMapAlloc<'a> {
         }
         self.alloc.write(alloc);
         self.initalized = true;
-    }
-    fn remove_alloc(&mut self) {
-        if !self.initalized {
-            return;
-        }
-        unsafe {
-            self.alloc.assume_init_drop();
-        }
-        self.initalized = false;
     }
 }
 
