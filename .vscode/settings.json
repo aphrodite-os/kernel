@@ -7,4 +7,5 @@
         "kernel/aphrodite_common/Cargo.toml",
         "user/Cargo.toml"
     ],
+    "rust-analyzer.check.command": "clippy",
 }
