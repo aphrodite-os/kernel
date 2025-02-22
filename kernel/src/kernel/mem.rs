@@ -366,317 +366,6 @@ impl<'a> MemoryMapAlloc<'a> {
         }
         false
     }
-
-    /// Find an allocation entry by its address
-    fn find_allocation_by_addr(&self, addr: u64) -> Option<(*mut Allocation, usize)> {
-        if self.allocations.is_null() {
-            return None;
-        }
-
-        for i in 0..unsafe { (*self.allocationheader).num_allocations } {
-            let current = unsafe {
-                &mut *((self.allocations as usize + size_of::<Allocation>() * (i as usize)) 
-                    as *mut Allocation)
-            };
-            
-            if current.used && current.addr == addr {
-                return Some((current as *mut Allocation, i as usize));
-            }
-        }
-        None
-    }
-
-    fn output_number(&self, num: u64, prefix: &str) {
-        crate::arch::output::sdebugs(prefix);
-        crate::arch::output::sdebugb(&crate::u64_as_u8_slice(num));
-    }
-
-    /// Print debug info about an allocation
-    fn debug_allocation_info(&self, allocation: &Allocation) {
-        self.output_number(allocation.addr, "Allocation at 0x");
-        self.output_number(allocation.len, " with length 0x");
-        crate::arch::output::sdebugs(" is ");
-        crate::arch::output::sdebugsnpln(if allocation.used { "used" } else { "free" });
-    }
-
-    /// Zero out a memory region
-    unsafe fn zero_memory_region(&self, addr: u64, len: u64) {
-        unsafe {
-            core::ptr::write_bytes(addr as *mut u8, 0, len as usize);
-        }
-    }
-
-    /// Finds an allocation by address
-    fn find_allocation(&self, addr: u64) -> Option<*mut Allocation> {
-        if self.allocations.is_null() {
-            return None;
-        }
-
-        let num_allocs = unsafe { (*self.allocationheader).num_allocations };
-        for i in 0..num_allocs {
-            let current = unsafe {
-                &mut *((self.allocations as usize + size_of::<Allocation>() * (i as usize)) 
-                    as *mut Allocation)
-            };
-            if current.used && current.addr == addr {
-                return Some(current as *mut Allocation);
-            }
-        }
-        None
-    }
-
-    /// Try to merge adjacent free blocks
-    fn try_merge_blocks(&self) {
-        if self.allocations.is_null() {
-            return;
-        }
-
-        let num_allocs = unsafe { (*self.allocationheader).num_allocations };
-        let mut i = 0;
-        while i < num_allocs {
-            let current = unsafe {
-                &mut *((self.allocations as usize + size_of::<Allocation>() * (i as usize)) 
-                    as *mut Allocation)
-            };
-
-            if current.used {
-                i += 1;
-                continue;
-            }
-
-            let mut merged = false;
-            let mut j = i + 1;
-            while j < num_allocs {
-                let next = unsafe {
-                    &mut *((self.allocations as usize + size_of::<Allocation>() * (j as usize))
-                        as *mut Allocation)
-                };
-
-                if next.used {
-                    break;
-                }
-
-                if current.addr + current.len == next.addr {
-                    // Merge the blocks
-                    current.len += next.len;
-                    next.used = true; // Mark as merged
-                    merged = true;
-                }
-                j += 1;
-            }
-
-            if !merged {
-                i += 1;
-            }
-        }
-    }
-
-    /// Finds a free block of memory that can fit the requested size and alignment
-    fn find_free_block(&self, size: u64, align: usize) -> Option<u64> {
-        for mapping in self.memory_map.clone() {
-            if mapping.len < size {
-                continue;
-            }
-
-            let mut allocatable = false;
-            if mapping.mem_type == MemoryType::Free {
-                allocatable = true;
-            } else if let MemoryType::HardwareSpecific(_, alloc) = mapping.mem_type {
-                allocatable = alloc;
-            }
-
-            if !allocatable {
-                continue;
-            }
-
-            // Try to find space from the end of the region
-            let mut addr = mapping.start + mapping.len - size;
-            while addr >= mapping.start {
-                if addr % align as u64 == 0 && !self.check_range(addr..addr + size) {
-                    return Some(addr);
-                }
-                addr -= size;
-            }
-        }
-        None
-    }
-
-    /// Track a new allocation in the allocation table
-    fn track_allocation(&self, addr: u64, size: u64) -> Result<(), crate::Error<'static>> {
-        let allocation = Allocation {
-            used: true,
-            addr,
-            len: size,
-        };
-
-        // First try to find an unused slot
-        for alloc in self.allocations_iter() {
-            if unsafe { !(*alloc).used } {
-                unsafe { *alloc = allocation };
-                return Ok(());
-            }
-        }
-
-        // Need to add new slot
-        unsafe { (*self.allocationheader).num_allocations += 1 };
-        let num_allocs = unsafe { (*self.allocationheader).num_allocations };
-
-        if num_allocs as usize * size_of::<Allocation>() > self.max_allocations_size as usize {
-            unsafe { (*self.allocationheader).num_allocations -= 1 };
-            return Err(crate::Error::new(
-                "allocation table full",
-                TOO_MANY_ALLOCATIONS,
-            ));
-        }
-
-        let new_alloc = unsafe {
-            &mut *((self.allocations as usize + size_of::<Allocation>() * (num_allocs as usize - 1))
-                as *mut Allocation)
-        };
-        *new_alloc = allocation;
-
-        Ok(())
-    }
-
-    /// Merge adjacent free blocks to reduce fragmentation
-    fn merge_free_blocks(&self) {
-        if self.allocations.is_null() {
-            return;
-        }
-
-        let mut i = 0;
-        while i < unsafe { (*self.allocationheader).num_allocations } {
-            let current = unsafe {
-                &mut *((self.allocations as usize + size_of::<Allocation>() * i as usize)
-                    as *mut Allocation)
-            };
-
-            if current.used {
-                i += 1;
-                continue;
-            }
-
-            // Look ahead for adjacent free blocks to merge
-            let mut j = i + 1;
-            while j < unsafe { (*self.allocationheader).num_allocations } {
-                let next = unsafe {
-                    &mut *((self.allocations as usize + size_of::<Allocation>() * j as usize)
-                        as *mut Allocation)
-                };
-
-                if next.used {
-                    break;
-                }
-
-                // Merge if blocks are contiguous
-                if current.addr + current.len == next.addr {
-                    current.len += next.len;
-                    next.used = true; // Mark as merged
-                    next.addr = 0;
-                    next.len = 0;
-                }
-
-                j += 1;
-            }
-            i += 1;
-        }
-    }
-
-    /// Merge contiguous free memory blocks to reduce fragmentation.
-    /// This should be called periodically to keep memory efficient.
-    pub fn merge_contiguous_allocations(&self) {
-        self.merge_free_blocks();
-    }
-}
-
-unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
-    fn allocate(
-        &self,
-        layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
-        unsafe { LAST_MEMMAP_ERR = Ok(()) };
-
-        if self.allocations.is_null() {
-            unsafe {
-                LAST_MEMMAP_ERR = Err(crate::Error::new(
-                    "allocator not initialized",
-                    FREE_MEMORY_UNAVAILABLE,
-                ))
-            };
-            return Err(core::alloc::AllocError);
-        }
-
-        // Try to find a suitable memory block
-        let addr = match self.find_free_block(layout.size() as u64, layout.align()) {
-            Some(addr) => addr,
-            None => {
-                unsafe {
-                    LAST_MEMMAP_ERR = Err(crate::Error::new(
-                        "no suitable memory block found",
-                        FREE_MEMORY_UNAVAILABLE,
-                    ))
-                };
-                return Err(core::alloc::AllocError);
-            }
-        };
-
-        // Track the allocation
-        if let Err(err) = self.track_allocation(addr, layout.size() as u64) {
-            unsafe { LAST_MEMMAP_ERR = Err(err) };
-            return Err(core::alloc::AllocError);
-        }
-
-        Ok(NonNull::from_raw_parts(
-            NonNull::<u8>::without_provenance(NonZero::new(addr as usize).unwrap()),
-            layout.size(),
-        ))
-    }
-
-    unsafe fn deallocate(&self, ptr: NonNull<u8>, _layout: core::alloc::Layout) {
-        let addr = ptr.addr().get() as u64;
-
-        if self.allocations.is_null() {
-            unsafe {
-                LAST_MEMMAP_ERR = Err(crate::Error::new(
-                    "allocator not initialized",
-                    FREE_MEMORY_UNAVAILABLE,
-                ))
-            };
-            return;
-        }
-
-        // Find the allocation
-        let mut found = false;
-        for i in 0..unsafe { (*self.allocationheader).num_allocations } {
-            let alloc = unsafe {
-                &mut *((self.allocations as usize + size_of::<Allocation>() * i as usize)
-                    as *mut Allocation)
-            };
-
-            if alloc.used && alloc.addr == addr {
-                // Zero the memory
-                unsafe { core::ptr::write_bytes(addr as *mut u8, 0, alloc.len as usize) };
-                
-                // Mark as free
-                alloc.used = false;
-                found = true;
-                break;
-            }
-        }
-
-        if !found {
-            unsafe {
-                LAST_MEMMAP_ERR = Err(crate::Error::new(
-                    "memory not allocated",
-                    MEMORY_NOT_ALLOCATED,
-                ))
-            };
-            return;
-        }
-
-        // Try to merge adjacent free blocks
-        self.merge_free_blocks();
-    }
 }
 
 /// Error returned when free memory is not available.
@@ -806,3 +495,133 @@ unsafe impl<'a> GlobalAlloc for MemoryMapAlloc<'a> {
 /// The last status of memory allocation or deallocation for a [MemoryMapAlloc].
 /// This can be used for more insight to why an allocation or deallocation failed.
 pub static mut LAST_MEMMAP_ERR: Result<(), crate::Error<'static>> = Ok(());
+
+unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
+    fn allocate(
+        &self,
+        layout: core::alloc::Layout,
+    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
+        unsafe { LAST_MEMMAP_ERR = Ok(()) }
+        if self.allocations == core::ptr::null_mut() {
+            unsafe {
+                LAST_MEMMAP_ERR = Err(crate::Error::new(
+                    "Allocations storage not set up",
+                    FREE_MEMORY_UNAVAILABLE,
+                ))
+            }
+            return Err(core::alloc::AllocError {});
+        }
+        let mut addr = 0u64;
+        for mapping in self.memory_map.clone() {
+            if mapping.len < layout.size() as u64 {
+                continue;
+            }
+            let mut allocatable = false;
+            if mapping.mem_type == MemoryType::Free {
+                allocatable = true;
+            } else if let MemoryType::HardwareSpecific(_, alloc) = mapping.mem_type {
+                allocatable = alloc;
+            }
+            if allocatable {
+                addr = mapping.start + mapping.len - layout.size() as u64;
+                while self.check_range(addr..addr + layout.size() as u64)
+                    && (addr as usize % layout.align() != 0)
+                    && addr >= mapping.start
+                {
+                    addr -= layout.size() as u64 / crate::cfg_int!("CONFIG_ALLOC_PRECISION", u64);
+                }
+                if (!self.check_range(addr..addr + layout.size() as u64))
+                    && (addr as usize % layout.align() == 0)
+                    && addr >= mapping.start
+                {
+                    break;
+                }
+                continue;
+            }
+        }
+
+        if addr == 0 {
+            unsafe {
+                LAST_MEMMAP_ERR = Err(crate::Error::new(
+                    "Free memory of the correct size and alignment couldn't be found",
+                    FREE_MEMORY_UNAVAILABLE,
+                ))
+            }
+            return Err(core::alloc::AllocError {});
+        }
+
+        if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
+            return Ok(NonNull::from_raw_parts(
+                NonNull::<u8>::without_provenance(NonZero::new(addr as usize).unwrap()),
+                layout.size(),
+            ));
+        }
+
+        if let Err(err) = self.add_allocation(Allocation {
+            used: true,
+            addr,
+            len: layout.size() as u64,
+        }) {
+            unsafe { LAST_MEMMAP_ERR = Err(err) }
+            return Err(core::alloc::AllocError {});
+        }
+
+        Ok(NonNull::from_raw_parts(
+            NonNull::<u8>::without_provenance(NonZero::new(addr as usize).unwrap()),
+            layout.size(),
+        ))
+    }
+
+    unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, _layout: core::alloc::Layout) {
+        unsafe { LAST_MEMMAP_ERR = Ok(()) }
+        if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
+            return;
+        }
+        let addr = ptr.addr().get() as u64;
+        if self.allocations == core::ptr::null_mut() {
+            unsafe {
+                LAST_MEMMAP_ERR = Err(crate::Error::new(
+                    "Allocations storage not set up",
+                    FREE_MEMORY_UNAVAILABLE,
+                ))
+            }
+            return;
+        }
+        crate::arch::output::sdebugsln("Searching for allocation");
+        crate::arch::output::sdebugbln(&crate::u64_as_u8_slice(
+            unsafe { *self.allocationheader }.num_allocations,
+        ));
+        for allocation in self.allocations_iter() {
+            crate::arch::output::sdebugsln("Allocation");
+            let alloc = unsafe { *allocation }.clone();
+            if !alloc.used {
+                crate::arch::output::sdebugs("Unused, addr is ");
+                if alloc.addr == addr {
+                    crate::arch::output::sdebugsnp("correct and ");
+                } else {
+                    crate::arch::output::sdebugsnp("incorrect and ");
+                }
+                if alloc.addr == 0 {
+                    crate::arch::output::sdebugsnpln("null");
+                } else {
+                    crate::arch::output::sdebugsnpln("non-null");
+                }
+                continue;
+            }
+            crate::arch::output::sdebugsln("Used");
+            if alloc.addr == addr {
+                unsafe { *allocation }.used = false;
+                return;
+            }
+        }
+        crate::arch::output::sdebugsln("Memory unallocated");
+        // Memory not allocated, something is up, this is put after the loop to prevent a costly call to check_addr
+        unsafe {
+            LAST_MEMMAP_ERR = Err(crate::Error::new(
+                "memory not allocated",
+                MEMORY_NOT_ALLOCATED,
+            ))
+        }
+        return;
+    }
+}

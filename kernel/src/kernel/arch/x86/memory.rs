@@ -15,9 +15,7 @@ pub struct MemorySections {
 
 #[repr(packed)]
 struct GDTR {
-    #[allow(dead_code)]
     address: u32,
-    #[allow(dead_code)]
     size: u16,
 }
 

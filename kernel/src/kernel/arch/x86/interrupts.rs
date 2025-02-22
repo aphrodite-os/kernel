@@ -71,7 +71,6 @@ pub fn restore_irq(flags: PoppedInterrupts) {
 /// The IDTR. Used internally in [load_idt].
 #[repr(packed)]
 #[repr(C)]
-#[allow(dead_code)]
 struct IDTR {
     base: *const u8,
     size: usize,
@@ -81,7 +80,6 @@ unsafe impl Send for IDTR {}
 unsafe impl Sync for IDTR {}
 
 /// Loads an interrupt descriptor table.
-#[allow(dead_code)]
 fn load_idt(base: *const u8, size: usize) {
     static mut IDTR: MaybeUninit<IDTR> = MaybeUninit::uninit();
     unsafe {

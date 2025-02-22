@@ -73,7 +73,6 @@ fn indep_boot_entry(
                 panic!("Deallocation failure");
             } else {
                 tdebugsln("Successfully deallocated!", display).unwrap();
-                allocator.merge_contiguous_allocations();
             }
         }
         tdebugsln("", display).unwrap();
