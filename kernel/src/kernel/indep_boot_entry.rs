@@ -5,16 +5,15 @@
 
 use core::alloc::{Allocator, Layout};
 
-use crate::{
-    display::{COLOR_DEFAULT, NoneTextDisplay},
-    output::*,
-};
+use crate::display::{COLOR_DEFAULT, NoneTextDisplay};
+use crate::output::*;
 
 use aphrodite_proc_macros::*;
 
 const MEM_TEST_SIZES: [usize; 8] = [1, 2, 4, 8, 16, 32, 64, 128];
 
-/// The real entrypoint to the kernel. `internel/arch/*/entry.rs` files eventually call this.
+/// The real entrypoint to the kernel. `internel/arch/*/entry.rs` files
+/// eventually call this.
 #[kernel_item(IndepBootEntry)]
 fn indep_boot_entry(
     display: Option<&dyn crate::display::TextDisplay>,

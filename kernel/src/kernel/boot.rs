@@ -27,7 +27,8 @@ pub enum MemoryType {
 }
 
 impl MemoryType {
-    /// Outputs the contents of this to the debug port with [crate::arch::output::sdebugsnp].
+    /// Outputs the contents of this to the debug port with
+    /// [crate::arch::output::sdebugsnp].
     pub fn output(&self) {
         match self {
             MemoryType::Free => crate::arch::output::sdebugsnp("Free"),
@@ -41,7 +42,7 @@ impl MemoryType {
                 } else {
                     crate::arch::output::sdebugsnp(", unallocatable");
                 }
-            }
+            },
             MemoryType::Kernel => crate::arch::output::sdebugsnp("Kernel loaded"),
             MemoryType::Permanent => crate::arch::output::sdebugsnp("Flash"),
             MemoryType::Reserved => crate::arch::output::sdebugsnp("Reserved"),
@@ -92,9 +93,7 @@ pub struct MemoryMap {
 
 impl MemoryMap {
     /// Resets the index of the iterator (sets self.idx to 0).
-    pub fn reset_iter(&mut self) {
-        self.idx = 0;
-    }
+    pub fn reset_iter(&mut self) { self.idx = 0; }
     /// The size of allocatable memory in bytes.
     pub fn mem_size(&mut self) -> u64 {
         let curr_idx = self.idx;
@@ -117,9 +116,7 @@ impl MemoryMap {
 impl core::ops::Index<usize> for MemoryMap {
     type Output = MemoryMapping;
 
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.sections[index]
-    }
+    fn index(&self, index: usize) -> &Self::Output { &self.sections[index] }
 }
 
 impl core::iter::Iterator for MemoryMap {
@@ -141,7 +138,8 @@ pub struct BootInfo<'a> {
     /// See <https://aphrodite-os.github.io/book/command-line.html> for the format.
     pub cmdline: Option<&'static str>,
 
-    /// The memory map provided by the bootloader. If None, the kernel will attempt to generate it.
+    /// The memory map provided by the bootloader. If None, the kernel will
+    /// attempt to generate it.
     pub memory_map: Option<MemoryMap>,
 
     /// The name of the bootloader(for example, "GRUB 2.12").

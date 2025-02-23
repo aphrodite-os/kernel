@@ -1,9 +1,11 @@
-//! Hardware-level memory sections. Unimplemented for certain hardware, x86 implements with GDT.
+//! Hardware-level memory sections. Unimplemented for certain hardware, x86
+//! implements with GDT.
 #![cfg(target_arch = "x86")]
 
 use core::arch::asm;
 
-use alloc::{vec, vec::Vec};
+use alloc::vec;
+use alloc::vec::Vec;
 
 use crate::memsections::*;
 
@@ -26,7 +28,8 @@ unsafe impl crate::memsections::MemorySections for MemorySections {
 
         for section in self.sections {
             let mut section: MemorySection = section;
-            // rust-analyzer doesn't want to cooperate and recognize that section is already MemorySection, so I'm telling it here.
+            // rust-analyzer doesn't want to cooperate and recognize that section is already
+            // MemorySection, so I'm telling it here.
             fn make_entry(section: &mut MemorySection, entries: &mut Vec<GDTEntry>) {
                 if section.length == 0 {
                     return;
@@ -39,13 +42,13 @@ unsafe impl crate::memsections::MemorySections for MemorySections {
                 match section.owner {
                     Owner::Kernelspace => {
                         access |= 0b0000000;
-                    }
+                    },
                     Owner::Modulespace => {
                         access |= 0b0100000;
-                    }
+                    },
                     Owner::Userspace => {
                         access |= 0b1100000;
-                    }
+                    },
                 }
                 if let SectionType::TaskSection { busy } = section.section_type {
                     access |= 0b00000;
@@ -159,9 +162,7 @@ pub struct MemorySectionBuilder {
 
 impl MemorySectionBuilder {
     /// Create a new MemorySectionBuilder.
-    pub fn new() -> Self {
-        MemorySectionBuilder { sections: vec![] }
-    }
+    pub fn new() -> Self { MemorySectionBuilder { sections: vec![] } }
 
     /// Adds a section to this MemorySectionBuilder.
     pub fn add_section(&mut self, section: MemorySection) -> &mut Self {

@@ -45,7 +45,7 @@ impl crate::display::TextDisplay for FramebufferInfo {
             match clr {
                 0 => clr = 0,
                 1 => clr = 0b00000111,
-                _ => {}
+                _ => {},
             }
         }
         let color = clr;
@@ -68,9 +68,7 @@ impl crate::display::TextDisplay for FramebufferInfo {
         }
         Ok(())
     }
-    fn get_size(&self) -> (u32, u32) {
-        (self.width, self.height)
-    }
+    fn get_size(&self) -> (u32, u32) { (self.width, self.height) }
 }
 
 impl FramebufferInfo {

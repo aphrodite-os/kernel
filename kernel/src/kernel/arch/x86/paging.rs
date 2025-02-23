@@ -5,7 +5,8 @@ use core::arch::asm;
 
 use aphrodite_proc_macros::kernel_item;
 
-/// One page directory entry. Use [PageDirectoryEntry::create_fourmb] or [PageDirectoryEntry::create_other] to make these.
+/// One page directory entry. Use [PageDirectoryEntry::create_fourmb] or
+/// [PageDirectoryEntry::create_other] to make these.
 pub enum PageDirectoryEntry {
     /// A four megabyte page.
     FourMb(u32),

@@ -1,4 +1,5 @@
-//! This provides raw methods for internal kernel usage for the Aphrodite kernel. See aphrodite_user for userspace.
+//! This provides raw methods for internal kernel usage for the Aphrodite
+//! kernel. See aphrodite_user for userspace.
 #![no_std]
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
@@ -51,11 +52,7 @@ pub use util::*;
 pub use traits::*;
 
 /// Returns the version of aphrodite.
-pub const fn version() -> &'static str {
-    env!("VERSION")
-}
+pub const fn version() -> &'static str { env!("VERSION") }
 
 /// Returns the version of the config for aphrodite.
-pub const fn cfg_version() -> &'static str {
-    env!("CFG_VERSION")
-}
+pub const fn cfg_version() -> &'static str { env!("CFG_VERSION") }

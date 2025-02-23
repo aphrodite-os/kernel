@@ -11,9 +11,7 @@
 #![allow(dead_code)]
 
 /// Returns the most specific architecture available.
-pub const fn get_arch() -> super::Architecture {
-    super::Architecture::ExampleDummy
-}
+pub const fn get_arch() -> super::Architecture { super::Architecture::ExampleDummy }
 
 pub mod interrupts {
     //! Interrupt-related functions.
@@ -26,9 +24,7 @@ pub mod interrupts {
 
     /// Returns whether interrupts are enabled or not.
     #[aphrodite_proc_macros::kernel_item(InterruptsCheck)]
-    fn interrupts_enabled() -> bool {
-        false
-    }
+    fn interrupts_enabled() -> bool { false }
 
     /// Enables interrupts.
     #[aphrodite_proc_macros::kernel_item(InterruptsEnable)]
@@ -41,9 +37,7 @@ pub mod interrupts {
     /// Disables interrupts and a value that can be used to restore them
     /// with [restore_irq].
     #[aphrodite_proc_macros::kernel_item(InterruptsPop)]
-    fn pop_irq() -> u64 {
-        0
-    }
+    fn pop_irq() -> u64 { 0 }
 
     /// Restores interrupts after a [pop_irq] call.
     #[aphrodite_proc_macros::kernel_item(InterruptsRestore)]

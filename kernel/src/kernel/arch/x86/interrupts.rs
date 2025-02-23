@@ -2,11 +2,9 @@
 #![cfg(target_arch = "x86")]
 #![allow(static_mut_refs)]
 
-use core::{
-    alloc::{Allocator, Layout},
-    arch::asm,
-    mem::MaybeUninit,
-};
+use core::alloc::{Allocator, Layout};
+use core::arch::asm;
+use core::mem::MaybeUninit;
 
 /// The syscall vector.
 pub const USER_SYSCALL_VECTOR: u16 = 0xA0;
@@ -26,20 +24,17 @@ pub fn interrupts_enabled() -> bool {
 
 /// Disables interrupts.
 #[aphrodite_proc_macros::kernel_item(InterruptsDisable)]
-pub fn disable_interrupts() {
-    unsafe { asm!("cli") }
-}
+pub fn disable_interrupts() { unsafe { asm!("cli") } }
 
-/// PoppedInterrupts implements drop and restores the interrupts upon being dropped.
-/// This is useful in functions where you need interrupts disabled during it but also
-/// want to use functions like [Result::unwrap] or [Option::unwrap].
+/// PoppedInterrupts implements drop and restores the interrupts upon being
+/// dropped. This is useful in functions where you need interrupts disabled
+/// during it but also want to use functions like [Result::unwrap] or
+/// [Option::unwrap].
 #[derive(Clone)]
 pub struct PoppedInterrupts(u32);
 
 impl Drop for PoppedInterrupts {
-    fn drop(&mut self) {
-        restore_irq(self.clone());
-    }
+    fn drop(&mut self) { restore_irq(self.clone()); }
 }
 
 /// Disables interrupts and returns the value of them.

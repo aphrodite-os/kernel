@@ -3,7 +3,8 @@
 /// A value of an argument.
 #[derive(Clone, Copy)]
 pub enum ArgumentValue {
-    /// A string argument with the preceeding and following single quotes removed, and any \' replaced with '.
+    /// A string argument with the preceeding and following single quotes
+    /// removed, and any \' replaced with '.
     Str(&'static str),
     /// A float argument.
     Float(f128),
@@ -37,12 +38,14 @@ pub struct Cmdline {
     /// The flags of the Cmdline.
     pub flags: &'static [Flag],
 
-    /// The argument validators. When using [CmdlineValidator], it will check all of them
-    /// and if ALL of them report ANY of the arguments incorrect, then it will return an error.
+    /// The argument validators. When using [CmdlineValidator], it will check
+    /// all of them and if ALL of them report ANY of the arguments
+    /// incorrect, then it will return an error.
     pub argument_validators: &'static [&'static dyn ArgumentValidator],
 
-    /// The flag validators. When using [CmdlineValidator], it will check all of them
-    /// and if ALL of them report ANY of the flags incorrect, then it will return an error.
+    /// The flag validators. When using [CmdlineValidator], it will check all of
+    /// them and if ALL of them report ANY of the flags incorrect, then it
+    /// will return an error.
     pub flag_validators: &'static [&'static dyn FlagValidator],
 }
 

@@ -11,9 +11,7 @@ pub struct Error<'a> {
 
 impl<'a> Error<'a> {
     /// Creates a new error.
-    pub const fn new(message: &'a str, code: i16) -> Self {
-        Error { message, code }
-    }
+    pub const fn new(message: &'a str, code: i16) -> Self { Error { message, code } }
 }
 
 impl Error<'_> {

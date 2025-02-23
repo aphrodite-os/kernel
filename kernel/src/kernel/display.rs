@@ -1,4 +1,5 @@
-//! Types, constants and traits for displaying text. Mostly implemented in arch/.
+//! Types, constants and traits for displaying text. Mostly implemented in
+//! arch/.
 
 use core::fmt::Write;
 
@@ -86,23 +87,18 @@ impl dyn TextDisplay + '_ {
     }
 }
 
-/// An implementation of [TextDisplay]. Returns (1,1) for the size and always returns Ok(()) for all functions.
+/// An implementation of [TextDisplay]. Returns (1,1) for the size and always
+/// returns Ok(()) for all functions.
 pub struct NoneTextDisplay {}
 
 impl TextDisplay for NoneTextDisplay {
-    fn get_size(&self) -> (u32, u32) {
-        (1, 1)
-    }
+    fn get_size(&self) -> (u32, u32) { (1, 1) }
     fn write_char(&self, _: (u32, u32), _: u8, _: Color) -> Result<(), crate::Error<'static>> {
         Ok(())
     }
 }
 
 impl Write for NoneTextDisplay {
-    fn write_char(&mut self, _: char) -> core::fmt::Result {
-        Ok(())
-    }
-    fn write_str(&mut self, _: &str) -> core::fmt::Result {
-        Ok(())
-    }
+    fn write_char(&mut self, _: char) -> core::fmt::Result { Ok(()) }
+    fn write_str(&mut self, _: &str) -> core::fmt::Result { Ok(()) }
 }

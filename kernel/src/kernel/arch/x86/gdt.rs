@@ -5,7 +5,8 @@ use core::alloc::Layout;
 
 use alloc::vec::Vec;
 
-/// Writes a series of GDT entries to an allocated section of memory and returns a pointer.
+/// Writes a series of GDT entries to an allocated section of memory and returns
+/// a pointer.
 pub unsafe fn write_gdt_entries(
     entries: Vec<GDTEntry>,
 ) -> Result<*const [u8], crate::Error<'static>> {
@@ -33,7 +34,8 @@ pub struct GDTEntry {
     pub flags: u8,
 }
 
-/// An error returned by [GDTEntry::write_to_addr] when the limit is greater than 0xFFFFF.
+/// An error returned by [GDTEntry::write_to_addr] when the limit is greater
+/// than 0xFFFFF.
 const GDT_WRITE_ADDR_INVALID_LIMIT: i16 = -1;
 
 impl GDTEntry {

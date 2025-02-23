@@ -1,9 +1,7 @@
 use proc_macro::TokenStream;
 use quote::{ToTokens, quote};
-use syn::{
-    ItemFn, Signature, Token,
-    parse::{Parse, ParseStream},
-};
+use syn::parse::{Parse, ParseStream};
+use syn::{ItemFn, Signature, Token};
 
 struct KernelItemNameInput {
     item: syn::Ident,

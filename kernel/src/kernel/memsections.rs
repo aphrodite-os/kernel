@@ -52,14 +52,15 @@ pub struct MemorySection {
     /// The base address.
     pub address: u64,
     /// The length. If the implementation has a maximum length of
-    /// sections, it should be automatically split into however many sections are necessary.
+    /// sections, it should be automatically split into however many sections
+    /// are necessary.
     pub length: u64,
 }
 
 /// Implemented by arch::*::memory::MemorySections. Note to implementers:
 /// Copy should NOT be implemented. That would lead to issues where a
-/// struct implementing this trait could be used after [write](MemorySections::write)
-/// is called, which is not supposed to happen.
+/// struct implementing this trait could be used after
+/// [write](MemorySections::write) is called, which is not supposed to happen.
 pub unsafe trait MemorySections {
     /// Write the sections to an allocated region and then activate them.
     ///

@@ -1,8 +1,11 @@
-//! Definitions of structs for multiboot2 information. Mostly used during pre-userspace.
+//! Definitions of structs for multiboot2 information. Mostly used during
+//! pre-userspace.
 
 use crate::boot::MemoryMapping;
 
-/// Used for Multiboot2 tags. This shouldn't be used after a [crate::boot::BootInfo] struct has been initalized, but it still can be used.
+/// Used for Multiboot2 tags. This shouldn't be used after a
+/// [crate::boot::BootInfo] struct has been initalized, but it still can be
+/// used.
 #[repr(C)]
 #[derive(Clone)]
 pub struct Tag {
@@ -12,7 +15,8 @@ pub struct Tag {
     pub tag_len: u32,
 }
 
-/// The root tag. The official Multiboot2 name is literally the "fixed part" of the tags, so I made a better name.
+/// The root tag. The official Multiboot2 name is literally the "fixed part" of
+/// the tags, so I made a better name.
 #[repr(C)]
 #[derive(Clone)]
 pub struct RootTag {
@@ -30,8 +34,8 @@ pub struct Module {
     pub mod_start: *const u8,
     /// A pointer to the end of the module
     pub mod_end: *const u8,
-    /// A string that should be in the format `module_name (command line arguments)`.
-    /// See <https://aphrodite-os.github.io/book/bootloader-modules.html>.
+    /// A string that should be in the format `module_name (command line
+    /// arguments)`. See <https://aphrodite-os.github.io/book/bootloader-modules.html>.
     pub mod_str: &'static core::ffi::CStr,
 }
 
@@ -43,8 +47,8 @@ pub struct MemorySection {
     pub base_addr: u64,
     /// The length of the section.
     pub length: u64,
-    /// The type of the section. Name is changed from the one provided in the Multiboot2 docs
-    /// as "type" is a keyword in rust.
+    /// The type of the section. Name is changed from the one provided in the
+    /// Multiboot2 docs as "type" is a keyword in rust.
     pub mem_type: u32,
     /// Reserved space. Should be ignored.
     reserved: u32,
@@ -78,7 +82,8 @@ pub struct RawMemoryMap {
     pub entry_size: u32,
     /// The version of the memory map. Should be disregarded as it's 0.
     pub entry_version: u32, // currently is 0, future Multiboot2 versions may increment
-    /// The sections. This is the reason that [Clone] can't be implemented for [RawMemoryMap].
+    /// The sections. This is the reason that [Clone] can't be implemented for
+    /// [RawMemoryMap].
     pub sections: [MemorySection],
 }
 
@@ -87,7 +92,8 @@ pub struct RawMemoryMap {
 pub struct MemoryMap {
     /// The version of the memory map. Should be disregarded as it's 0.
     pub version: u32, // currently is 0, future Multiboot2 versions may increment
-    /// Size of one entry(one [MemorySection] for Aphrodite's Multiboot2 support)
+    /// Size of one entry(one [MemorySection] for Aphrodite's Multiboot2
+    /// support)
     pub entry_size: u32,
     /// All sections.
     pub sections: &'static [crate::boot::MemoryMapping],
@@ -186,37 +192,42 @@ pub struct Multiboot2BootInfo {
     /// See above
     pub mem_upper: Option<u32>,
 
-    // Multiboot2 bootloaders may provide us with the BIOS device and partition, but we're not interested.
-    // To ensure future developers don't get any ideas, I'm leaving it out here.
+    // Multiboot2 bootloaders may provide us with the BIOS device and partition, but we're not
+    // interested. To ensure future developers don't get any ideas, I'm leaving it out here.
     // If you need it, good luck.
-    /// We're provided with a C-style UTF-8(null-terminated UTF-8) string. This should contain the original pointer provided by
-    /// the bootloader.
+    /// We're provided with a C-style UTF-8(null-terminated UTF-8) string. This
+    /// should contain the original pointer provided by the bootloader.
     /// See <https://aphrodite-os.github.io/book/command-line.html> for the format.
     pub cmdline: Option<&'static core::ffi::CStr>,
 
-    // Due to the way modules work, it's not easily possible to make a struct that contains all the modules.
-    // Therefore, they are loaded on the fly.
+    // Due to the way modules work, it's not easily possible to make a struct that contains all the
+    // modules. Therefore, they are loaded on the fly.
 
-    // Multiboot2 bootloaders may provide us with ELF symbols, but I'm feeling lazy and right now it's mostly
-    // unnecessary, so I don't care. Sorry if you are affected by this.
+    // Multiboot2 bootloaders may provide us with ELF symbols, but I'm feeling lazy and right now
+    // it's mostly unnecessary, so I don't care. Sorry if you are affected by this.
     /// The memory map provided by the bootloader.
     pub memory_map: Option<MemoryMap>,
 
-    /// The name of the bootloader(for example, "GRUB 2.12"). C-style UTF-8(null-terminated UTF-8) string.
-    /// This should contain the original pointer provided by the bootloader.
+    /// The name of the bootloader(for example, "GRUB 2.12"). C-style
+    /// UTF-8(null-terminated UTF-8) string. This should contain the
+    /// original pointer provided by the bootloader.
     pub bootloader_name: Option<&'static core::ffi::CStr>,
 
-    // APM table is ignored as APM has been superseded by ACPI. If your system doesn't support ACPI, good luck.
+    // APM table is ignored as APM has been superseded by ACPI. If your system doesn't support
+    // ACPI, good luck.
 
-    // VBE table is ignored for a similar reason to above: it's deprecated. Good luck if you need it.
+    // VBE table is ignored for a similar reason to above: it's deprecated. Good luck if you need
+    // it.
     /// Provides information on the framebuffer.
     pub framebuffer_info: Option<FramebufferInfo>,
     /// Color info, stored separately from [FramebufferInfo] because rust
     pub color_info: Option<ColorInfo>,
-    // Even though SMBIOS is documented for Multiboot2, we're not using it and will instead search for it ourselves.
-    // This is because right now I cannot figure out what format it provides the SMBIOS table in.
+    // Even though SMBIOS is documented for Multiboot2, we're not using it and will instead search
+    // for it ourselves. This is because right now I cannot figure out what format it provides
+    // the SMBIOS table in.
 
     // EFI memory map and image handle pointers are not included for portability.
 
-    // "Image load base physical address" is not included as at the moment the kernel is not relocatable.
+    // "Image load base physical address" is not included as at the moment the kernel is not
+    // relocatable.
 }

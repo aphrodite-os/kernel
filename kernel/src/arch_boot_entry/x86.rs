@@ -9,8 +9,10 @@
 #![feature(cfg_match)]
 #![feature(formatting_options)]
 
+use core::arch::asm;
+use core::ffi::CStr;
 use core::fmt::Debug;
-use core::{arch::asm, ffi::CStr, panic::PanicInfo};
+use core::panic::PanicInfo;
 
 use aphrodite::arch::egatext;
 use aphrodite::arch::output::*;
@@ -65,9 +67,11 @@ static mut MAGIC: u32 = 0xFFFFFFFF;
 extern "C" fn _start() -> ! {
     unsafe {
         // Copy values provided by the bootloader out
-        // Aphrodite bootloaders pass values in eax and ebx, however rust doesn't know that it can't overwrite those.
-        // (if necessary, we'll store all of the registers for other bootloaders and identify which one it is later)
-        // we force using ebx and eax as the output of an empty assembly block to let it know.
+        // Aphrodite bootloaders pass values in eax and ebx, however rust doesn't know
+        // that it can't overwrite those. (if necessary, we'll store all of the
+        // registers for other bootloaders and identify which one it is later)
+        // we force using ebx and eax as the output of an empty assembly block to let it
+        // know.
         asm!(
             "", out("ebx") O, // Bootloader-specific data(ebx)
                 out("eax") MAGIC, // Magic number(eax)
@@ -128,21 +132,21 @@ extern "C" fn _start() -> ! {
                                 panic!("size of ending tag != 8");
                             }
                             break;
-                        }
+                        },
                         4 => {
                             // Basic memory information
                             if current_tag.tag_len != 16 {
                                 // Unexpected size, something is probably up
                                 panic!("size of basic memory information tag != 16");
                             }
-                        }
+                        },
                         5 => {
                             // BIOS boot device, ignore
                             if current_tag.tag_len != 20 {
                                 // Unexpected size, something is probably up
                                 panic!("size of bios boot device tag != 20");
                             }
-                        }
+                        },
                         1 => {
                             // Command line
                             if current_tag.tag_len < 8 {
@@ -154,7 +158,7 @@ extern "C" fn _start() -> ! {
 
                             BI.cmdline = Some(cstring.to_str().unwrap());
                             // ...before the BootInfo's commandline is set.
-                        }
+                        },
                         6 => {
                             // Memory map tag
                             if current_tag.tag_len < 16 {
@@ -165,11 +169,14 @@ extern "C" fn _start() -> ! {
                                 ptr as *mut u8,
                                 (current_tag.tag_len / *((ptr + 8usize) as *const u32)) as usize,
                             );
-                            // The end result of the above is creating a *const RawMemoryMap that has the same address as current_tag
-                            // and has all of the [aphrodite::multiboot2::MemorySection]s for the memory map
+                            // The end result of the above is creating a *const RawMemoryMap that
+                            // has the same address as current_tag
+                            // and has all of the [aphrodite::multiboot2::MemorySection]s for the
+                            // memory map
 
                             let memorysections: &'static mut [aphrodite::multiboot2::MemorySection] = &mut *core::ptr::from_raw_parts_mut((&mut (*rawmemorymap).sections[0]) as &mut MemorySection, (*rawmemorymap).sections.len());
-                            // Above is a bit hard to understand, but what it does is transmute rawmemorymap's sections into a pointer to those sections.
+                            // Above is a bit hard to understand, but what it does is transmute
+                            // rawmemorymap's sections into a pointer to those sections.
 
                             for ele in &mut *memorysections {
                                 (*ele) = core::mem::transmute(Into::<MemoryMapping>::into(*ele))
@@ -188,7 +195,7 @@ extern "C" fn _start() -> ! {
                                 idx: 0,
                             };
                             BI.memory_map = Some(mm2);
-                        }
+                        },
                         2 => {
                             // Bootloader name
                             if current_tag.tag_len < 8 {
@@ -200,7 +207,7 @@ extern "C" fn _start() -> ! {
 
                             BI.bootloader_name = Some(cstring.to_str().unwrap());
                             // ...before the BootInfo's bootloader_name is set.
-                        }
+                        },
                         8 => {
                             // Framebuffer info
                             if current_tag.tag_len < 32 {
@@ -213,16 +220,16 @@ extern "C" fn _start() -> ! {
                                 0 => {
                                     // Indexed
                                     panic!("Indexed color is unimplemented");
-                                }
+                                },
                                 1 => {
                                     // RGB
                                     panic!("RGB color is unimplemented");
-                                }
+                                },
                                 2 => { // EGA Text  
-                                }
+                                },
                                 _ => {
                                     panic!("unknown color info type")
-                                }
+                                },
                             }
                             let framebuffer_info = (*framebufferinfo).clone();
 
@@ -235,12 +242,12 @@ extern "C" fn _start() -> ! {
                                 change_cursor: false,
                             };
                             BI.output = Some(&FBI)
-                        }
+                        },
                         _ => {
                             // Unknown/unimplemented tag type, ignore
                             swarnings("Unknown tag type ");
                             swarningbnpln(&aphrodite::u32_as_u8_slice(current_tag.tag_type));
-                        }
+                        },
                     }
                     sinfounp(b'\n');
                     ptr = (ptr + current_tag.tag_len as usize + 7) & !7;
@@ -266,11 +273,11 @@ extern "C" fn _start() -> ! {
                     }
                     current_tag = core::ptr::read_volatile(ptr as *const Tag);
                 }
-            }
+            },
             _ => {
                 // Unknown bootloader, panic
                 panic!("unknown bootloader");
-            }
+            },
         }
     }
     sdebugsln("Bootloader information has been successfully loaded");

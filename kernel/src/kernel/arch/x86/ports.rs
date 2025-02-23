@@ -34,6 +34,4 @@ pub fn inb(port: u16) -> u8 {
 
 /// Wait a short, indeterminable time
 #[inline(always)]
-pub fn io_wait() {
-    outb(0x80, 0);
-}
+pub fn io_wait() { outb(0x80, 0); }

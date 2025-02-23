@@ -1,13 +1,11 @@
 //! Memory allocation.
 
-use core::{
-    alloc::{Allocator, GlobalAlloc},
-    fmt::Debug,
-    mem::MaybeUninit,
-    num::NonZero,
-    ops::Range,
-    ptr::{NonNull, null_mut},
-};
+use core::alloc::{Allocator, GlobalAlloc};
+use core::fmt::Debug;
+use core::mem::MaybeUninit;
+use core::num::NonZero;
+use core::ops::Range;
+use core::ptr::{NonNull, null_mut};
 
 use crate::boot::{MemoryMap, MemoryType};
 
@@ -27,7 +25,8 @@ struct Allocation {
 
 #[derive(Clone, Copy)]
 struct AllocationHeader {
-    /// Whether this allocation table is used. Kept for parity with [Allocation]s.
+    /// Whether this allocation table is used. Kept for parity with
+    /// [Allocation]s.
     #[allow(dead_code)]
     pub used: bool,
     /// The starting address of the allocation table.
@@ -76,13 +75,14 @@ fn get_allocator() -> Option<&'static MemoryMapAlloc<'static>> {
     }
 }
 
-/// The unsafe counterpart of [MemMapAlloc()]. Doesn't check if the allocator is initalized.
-/// Internally, uses [MaybeUninit::assume_init_ref].
+/// The unsafe counterpart of [MemMapAlloc()]. Doesn't check if the allocator is
+/// initalized. Internally, uses [MaybeUninit::assume_init_ref].
 ///
 /// # Safety
 ///
-/// Calling this instead of [MemMapAlloc] or when the allocator is uninitalized causes
-/// undefined behavior; check [MaybeUninit::assume_init_ref] for safety guarantees.
+/// Calling this instead of [MemMapAlloc] or when the allocator is uninitalized
+/// causes undefined behavior; check [MaybeUninit::assume_init_ref] for safety
+/// guarantees.
 pub unsafe fn get_allocator_unchecked() -> &'static MemoryMapAlloc<'static> {
     #[allow(static_mut_refs)]
     unsafe {
@@ -110,7 +110,8 @@ fn memory_map_alloc_init(memmap: crate::boot::MemoryMap) -> Result<(), crate::Er
     Ok(())
 }
 
-/// A implementation of a physical memory allocator that uses a [crate::boot::MemoryMap].
+/// A implementation of a physical memory allocator that uses a
+/// [crate::boot::MemoryMap].
 pub struct MemoryMapAlloc<'a> {
     /// The memory map to use to allocate memory.
     pub memory_map: &'a mut crate::boot::MemoryMap,
@@ -120,7 +121,8 @@ pub struct MemoryMapAlloc<'a> {
     max_allocations_size: u64,
 }
 
-/// Too many allocations have been created, pushing the size of [MemoryMapAlloc::allocations] over [MemoryMapAlloc::max_allocations_size].
+/// Too many allocations have been created, pushing the size of
+/// [MemoryMapAlloc::allocations] over [MemoryMapAlloc::max_allocations_size].
 pub const TOO_MANY_ALLOCATIONS: i16 = -2;
 
 /// There isn't enough space for 32 allocations(the minimum available).
@@ -132,7 +134,8 @@ pub const EXTEND_ALLOCATION_INVALID_INDEX: i16 = -4;
 /// The allocation provided to [MemoryMapAlloc::extend_allocation] is unused.
 pub const EXTEND_ALLOCATION_ALLOCATION_UNUSED: i16 = -5;
 
-/// The allocation provided to [MemoryMapAlloc::extend_allocation], if extended, would extend into another allocation.
+/// The allocation provided to [MemoryMapAlloc::extend_allocation], if extended,
+/// would extend into another allocation.
 pub const EXTEND_ALLOCATION_OTHER_ALLOCATION: i16 = -6;
 
 impl<'a> Debug for MemoryMapAlloc<'a> {
@@ -150,12 +153,14 @@ impl<'a> Debug for MemoryMapAlloc<'a> {
 }
 
 impl<'a> MemoryMapAlloc<'a> {
-    /// Creates a new [MemoryMapAlloc]. Please call this method instead of creating it manually!
+    /// Creates a new [MemoryMapAlloc]. Please call this method instead of
+    /// creating it manually!
     ///
-    /// This method internally stores the memory map in the outputted MemoryMapAlloc.
+    /// This method internally stores the memory map in the outputted
+    /// MemoryMapAlloc.
     ///
-    /// Note that this function will return an error only if there isn't enough allocatable space
-    /// for at least 32 allocations.
+    /// Note that this function will return an error only if there isn't enough
+    /// allocatable space for at least 32 allocations.
     pub fn new(
         memory_map: &'a mut crate::boot::MemoryMap,
     ) -> Result<MemoryMapAlloc<'a>, crate::Error<'a>> {
@@ -223,9 +228,7 @@ impl<'a> MemoryMapAlloc<'a> {
     }
 
     /// Returns the number of allocations.
-    pub fn number_of_allocations(&self) -> u64 {
-        unsafe { *self.allocationheader }.num_allocations
-    }
+    pub fn number_of_allocations(&self) -> u64 { unsafe { *self.allocationheader }.num_allocations }
 
     /// Creates a [AllocationIter] to iterate over the current allocations.
     fn allocations_iter(&self) -> AllocationIter {
@@ -236,13 +239,14 @@ impl<'a> MemoryMapAlloc<'a> {
         }
     }
 
-    /// Check to see if any allocations contain the given address. Returns true if so.
+    /// Check to see if any allocations contain the given address. Returns true
+    /// if so.
     fn check_addr(&self, addr: u64) -> bool {
         if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
             return false;
         }
-        if addr >= (self.allocationheader as u64)
-            && addr < (self.allocationheader as u64 + unsafe { *self.allocationheader }.len)
+        if addr >= (self.allocationheader as u64) &&
+            addr < (self.allocationheader as u64 + unsafe { *self.allocationheader }.len)
         {
             return true;
         }
@@ -255,7 +259,8 @@ impl<'a> MemoryMapAlloc<'a> {
         false
     }
 
-    /// Check to see if a range of addresses have any allocations within. Returns true if so.
+    /// Check to see if a range of addresses have any allocations within.
+    /// Returns true if so.
     fn check_range(&self, addr: Range<u64>) -> bool {
         if cfg!(CONFIG_MEMORY_UNION_ALL = "true") {
             return false;
@@ -339,7 +344,8 @@ impl<'a> MemoryMapAlloc<'a> {
         }
     }
 
-    /// Finds a free block of memory that can fit the requested size and alignment
+    /// Finds a free block of memory that can fit the requested size and
+    /// alignment
     fn find_free_block(&self, size: u64, align: usize) -> Option<u64> {
         for mapping in self.memory_map.clone() {
             if mapping.len < size {
@@ -452,9 +458,7 @@ impl<'a> MemoryMapAlloc<'a> {
 
     /// Merge contiguous free memory blocks to reduce fragmentation.
     /// This should be called periodically to keep memory efficient.
-    pub fn merge_contiguous_allocations(&self) {
-        self.merge_free_blocks();
-    }
+    pub fn merge_contiguous_allocations(&self) { self.merge_free_blocks(); }
 }
 
 unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
@@ -485,7 +489,7 @@ unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
                     ))
                 };
                 return Err(core::alloc::AllocError);
-            }
+            },
         };
 
         // Track the allocation
@@ -663,5 +667,6 @@ unsafe impl<'a> GlobalAlloc for MemoryMapAlloc<'a> {
 }
 
 /// The last status of memory allocation or deallocation for a [MemoryMapAlloc].
-/// This can be used for more insight to why an allocation or deallocation failed.
+/// This can be used for more insight to why an allocation or deallocation
+/// failed.
 pub static mut LAST_MEMMAP_ERR: Result<(), crate::Error<'static>> = Ok(());

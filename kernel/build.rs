@@ -45,7 +45,8 @@ fn main() {
     );
     // End checks
 
-    // Configuration name used when a config is required but should always evaluate to true
+    // Configuration name used when a config is required but should always evaluate
+    // to true
     println!(r#"cargo:rustc-check-cfg=cfg(NONE, values("false", none()))"#);
 
     for (var, val) in env {
