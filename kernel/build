@@ -65,6 +65,14 @@
 
     APHRODITE_DIR="${APHRODITE_DIR:-$TEMP_APHRODITE_DIR}"
 
+    if [[ $format = "true" ]]; then
+        echo "[INFO] Formatting"
+        pushd . 2>&1 > /dev/null
+        cd "$APHRODITE_DIR"
+        cargo fmt --all
+        exit 0
+    fi
+
     DIR="${BASH_SOURCE%/*}"
     if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
 
@@ -132,14 +140,6 @@
             fi
         fi
     }
-
-    if [[ $format = "true" ]]; then
-        echo "[INFO] Formatting"
-        pushd . 2>&1 > /dev/null
-        cd "$APHRODITE_DIR"
-        cargo fmt --all
-        exit 0
-    fi
 
     if [[ $# -ge 1 ]]; then
         echo "[INFO] Compiling only target $1"
