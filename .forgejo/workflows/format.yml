@@ -1,0 +1,20 @@
+name: Format code
+on: [push]
+
+jobs:
+  format-kernel:
+    name: Format the kernel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: |
+          cd kernel
+          ./format
+      - name: Commit format
+        run: |
+          git config --global user.name 'Formatter'
+          git config --global user.email 'formatter@noreply.git.verygay.fyi'
+          git commit -am "Automated format"
+          git push
+      

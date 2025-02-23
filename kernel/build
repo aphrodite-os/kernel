@@ -135,6 +135,8 @@
 
     if [[ $format = "true" ]]; then
         echo "[INFO] Formatting"
+        pushd . 2>&1 > /dev/null
+        cd "$APHRODITE_DIR"
         cargo fmt --all
         exit 0
     fi
