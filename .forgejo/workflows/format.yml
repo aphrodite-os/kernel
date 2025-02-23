@@ -8,6 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: msrd0/rust-toolchain@nightly
+        components: "rustfmt"
       - run: |
           cd kernel
           ./format
