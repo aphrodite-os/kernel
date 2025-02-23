@@ -16,6 +16,6 @@ jobs:
         run: |
           git config --global user.name 'Formatter'
           git config --global user.email 'formatter@noreply.git.verygay.fyi'
-          git commit -am "Automated format"
+          git commit -am "Automated format" || true
           git push
       
