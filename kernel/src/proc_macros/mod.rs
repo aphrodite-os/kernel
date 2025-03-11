@@ -16,13 +16,13 @@ impl Parse for KernelItemNameInput {
 
 fn to_tokens(signature: Signature, tokens: &mut proc_macro2::TokenStream) {
     let ts = tokens;
-    signature.constness.to_tokens(ts.into());
-    signature.asyncness.to_tokens(ts.into());
-    signature.unsafety.to_tokens(ts.into());
-    signature.abi.to_tokens(ts.into());
-    signature.fn_token.to_tokens(ts.into());
-    signature.generics.to_tokens(ts.into());
-    signature.paren_token.surround(ts.into(), |tokens| {
+    signature.constness.to_tokens(ts);
+    signature.asyncness.to_tokens(ts);
+    signature.unsafety.to_tokens(ts);
+    signature.abi.to_tokens(ts);
+    signature.fn_token.to_tokens(ts);
+    signature.generics.to_tokens(ts);
+    signature.paren_token.surround(ts, |tokens| {
         signature.inputs.to_tokens(tokens);
         if let Some(variadic) = &signature.variadic {
             if !signature.inputs.empty_or_trailing() {
@@ -31,14 +31,14 @@ fn to_tokens(signature: Signature, tokens: &mut proc_macro2::TokenStream) {
             variadic.to_tokens(tokens);
         }
     });
-    signature.output.to_tokens(ts.into());
-    signature.generics.where_clause.to_tokens(ts.into());
+    signature.output.to_tokens(ts);
+    signature.generics.where_clause.to_tokens(ts);
 }
 
 fn to_token_stream(signature: Signature) -> proc_macro2::TokenStream {
     let mut tokens = proc_macro2::TokenStream::new();
     to_tokens(signature, &mut tokens);
-    tokens.into()
+    tokens
 }
 
 /// Implement a kernel item.
