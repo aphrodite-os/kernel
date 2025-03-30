@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 (
     flags=$-
     set -o pipefail -o noclobber
