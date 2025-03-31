@@ -167,10 +167,6 @@ pub fn initalize_rtc() {
     unsafe { RTC_INITALIZED = true }
 }
 
-pub fn sleep(seconds: u32) {
-    initalize_rtc();
-}
+pub fn sleep(seconds: u32) { initalize_rtc(); }
 
-pub fn alloc_available_boot() {
-    
-}
+pub fn alloc_available_boot() {}

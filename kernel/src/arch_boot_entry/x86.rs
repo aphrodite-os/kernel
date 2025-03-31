@@ -14,9 +14,8 @@ use core::ffi::CStr;
 use core::fmt::Debug;
 use core::panic::PanicInfo;
 
-use aphrodite::arch::egatext;
-use aphrodite::arch::enable_a20;
 use aphrodite::arch::output::*;
+use aphrodite::arch::{egatext, enable_a20};
 use aphrodite::boot::{BootInfo, MemoryMapping};
 use aphrodite::display::COLOR_DEFAULT;
 use aphrodite::multiboot2::{
