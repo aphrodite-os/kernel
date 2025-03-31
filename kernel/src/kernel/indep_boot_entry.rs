@@ -29,7 +29,13 @@ fn indep_boot_entry(
     let mem_map = BI.memory_map.unwrap();
     crate::mem::MemMapAllocInit(mem_map).unwrap();
 
-    crate::power_on_tests::run(display);
+    crate::arch::alloc_available_boot();
+
+    if cfg!(not(CONFIG_POWERON_TESTS = "false")) {
+        crate::power_on_tests::run(display);
+
+        tinfosln("Successfully ran all configured power on tests", display).unwrap();
+    }
 
     loop {}
 }

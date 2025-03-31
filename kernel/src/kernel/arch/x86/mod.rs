@@ -153,3 +153,24 @@ pub fn enable_a20() -> bool {
 
     return test_a20();
 }
+
+static mut RTC_INITALIZED: bool = false;
+
+pub fn initalize_rtc() {
+    if unsafe { RTC_INITALIZED } {
+        return;
+    }
+    let irq = pop_irq();
+    outb(0x70, 0x8A);
+    outb(0x71, 0x20);
+    restore_irq(irq);
+    unsafe { RTC_INITALIZED = true }
+}
+
+pub fn sleep(seconds: u32) {
+    initalize_rtc();
+}
+
+pub fn alloc_available_boot() {
+    
+}

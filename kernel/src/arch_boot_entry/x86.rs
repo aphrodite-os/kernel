@@ -15,6 +15,7 @@ use core::fmt::Debug;
 use core::panic::PanicInfo;
 
 use aphrodite::arch::egatext;
+use aphrodite::arch::enable_a20;
 use aphrodite::arch::output::*;
 use aphrodite::boot::{BootInfo, MemoryMapping};
 use aphrodite::display::COLOR_DEFAULT;
@@ -290,6 +291,12 @@ extern "C" fn _start() -> ! {
     }
     sdebugsln("Bootloader information has been successfully loaded");
     sdebugunp(b'\n');
+
+    if !enable_a20() {
+        panic!("failed to enable a20 gate");
+    }
+    initalize_rtc();
+
     unsafe {
         if BI.output.clone().is_some() {
             let framebuffer_info = FBI;

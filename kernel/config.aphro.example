@@ -35,5 +35,13 @@ CONFIG_BUILD_GRUB=true
 # The precision of the allocator. The size of the allocated region is divided by this to get how much to change it by each loop iteration
 # when trying to find a allocatable region.
 CONFIG_ALLOC_PRECISION=4
+
+# Joke memory allocation option. Causes all allocations to return the exact same address.
 CONFIG_MEMORY_UNION_ALL=false
+
+# Whether to run power on tests.
+CONFIG_POWERON_TESTS=true
+
+# Whether to run the allocator power on test.
+CONFIG_POWERON_TEST_ALLOC=true
 # End configs

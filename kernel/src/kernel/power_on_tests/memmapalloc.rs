@@ -1,3 +1,5 @@
+#![cfg(all(not(CONFIG_POWERON_TESTS = "false"), not(CONFIG_POWERON_TEST_ALLOC = "false")))]
+
 use crate::display::TextDisplay;
 use crate::output::*;
 

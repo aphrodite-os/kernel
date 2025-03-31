@@ -85,7 +85,7 @@ fn load_idt(base: *const u8, size: usize) {
 /// Activate an IDT.
 #[aphrodite_proc_macros::kernel_item(ActivateIDT)]
 fn activate_idt(idt: Idt, alloc: crate::mem::MemoryMapAlloc) {
-    let _mem = alloc
+    let mem = alloc
         .allocate(unsafe { Layout::from_size_align_unchecked(8 * idt.len, 1) })
         .unwrap()
         .as_mut_ptr();
