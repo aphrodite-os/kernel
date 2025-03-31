@@ -172,8 +172,6 @@ impl<'a> MemoryMapAlloc<'a> {
         };
         out.memory_map.reset_iter();
         for mapping in &mut *out.memory_map {
-            mapping.output();
-            crate::arch::output::sdebugsnpln("");
             if mapping.len < (size_of::<Allocation>() * 32) as u64 {
                 continue;
             }
@@ -527,7 +525,8 @@ unsafe impl<'a> Allocator for MemoryMapAlloc<'a> {
 
             if alloc.used && alloc.addr == addr {
                 // Zero the memory
-                unsafe { core::ptr::write_bytes(addr as *mut u8, 0, alloc.len as usize) };
+                // removed 2024-03-31 due to performance concerns and rust doesn't require this
+                // unsafe { core::ptr::write_bytes(addr as *mut u8, 0, alloc.len as usize) };
 
                 // Mark as free
                 alloc.used = false;

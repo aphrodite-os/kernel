@@ -7,7 +7,7 @@
 #![deny(rustdoc::invalid_html_tags)]
 #![deny(rustdoc::invalid_rust_codeblocks)]
 #![deny(unsafe_op_in_unsafe_fn)]
-// tidy-alphabetical-start
+
 #![feature(ptr_metadata)]
 #![feature(const_trait_impl)]
 #![feature(f128)]
@@ -20,7 +20,6 @@
 #![feature(ptr_as_uninit)]
 #![allow(internal_features)]
 #![feature(core_intrinsics)]
-// tidy-alphabetical-end
 
 extern crate alloc;
 

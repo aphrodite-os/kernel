@@ -49,10 +49,10 @@ impl crate::display::TextDisplay for FramebufferInfo {
             }
         }
         let color = clr;
-        if pos.0 > self.width {
+        if pos.0 >= self.width {
             return Err(crate::Error::new("Invalid X position", ERR_INVALID_X));
         }
-        if pos.1 > self.height {
+        if pos.1 >= self.height {
             return Err(crate::Error::new("Invalid Y position", ERR_INVALID_Y));
         }
         unsafe {
@@ -68,7 +68,18 @@ impl crate::display::TextDisplay for FramebufferInfo {
         }
         Ok(())
     }
+
     fn get_size(&self) -> (u32, u32) { (self.width, self.height) }
+
+    fn scroll(&self) {
+        let mut addr = self.address as usize;
+        addr += self.pitch as usize;
+        unsafe { core::ptr::copy(addr as *const u8, self.address as usize as *mut u8, (self.pitch*(self.height-1)) as usize); }
+
+        for x in 0..self.width {
+            self.write_char((x, self.height-1), b' ', crate::display::COLOR_DEFAULT);
+        }
+    }
 }
 
 impl FramebufferInfo {

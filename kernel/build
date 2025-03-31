@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 (
     flags=$-
     set -o pipefail -o noclobber
@@ -120,9 +119,9 @@
             cargo clippy --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
         else
             echo "[INFO] Compiling target $target(with rust target of $real_target)"
-            echo "[INFO] Running clippy"
+            echo "[INFO] Checking target with clippy"
             cargo clippy --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
-            echo "[INFO] Building"
+            echo "[INFO] Building target"
             cargo build --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target 2>/dev/null
             cp "target/$(echo $target_json | sed 's/\.json//')/release/entrypoint_$target" kernel-$target
 

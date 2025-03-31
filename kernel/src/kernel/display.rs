@@ -27,6 +27,8 @@ pub trait TextDisplay: core::fmt::Write {
     ) -> Result<(), crate::Error<'static>>;
     /// Gets the size of the screen.
     fn get_size(&self) -> (u32, u32);
+    /// Scroll the screen up one character. Clear the bottom row.
+    fn scroll(&self);
 }
 
 impl dyn TextDisplay + '_ {
@@ -47,9 +49,13 @@ impl dyn TextDisplay + '_ {
         str: &str,
         color: Color,
     ) -> Result<(u32, u32), crate::Error<'static>> {
-        let (width, _) = self.get_size();
+        let (width, height) = self.get_size();
         let (mut x, mut y) = pos;
         for char in str.as_bytes() {
+            if y >= height {
+                self.scroll();
+                y -= 1;
+            }
             self.write_char((x, y), *char, color)?;
             if *char == 0 {
                 continue;
@@ -96,6 +102,7 @@ impl TextDisplay for NoneTextDisplay {
     fn write_char(&self, _: (u32, u32), _: u8, _: Color) -> Result<(), crate::Error<'static>> {
         Ok(())
     }
+    fn scroll(&self) {}
 }
 
 impl Write for NoneTextDisplay {

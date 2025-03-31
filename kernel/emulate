@@ -1,13 +1,22 @@
 #!/bin/bash
 
 if [[ $# -ne 1 ]]; then
-    echo "Error: expected target to be passed to $0"
-    echo ""
-    echo "Run in the format: $0 target"
+    echo "[ERROR] Expected target to be passed"
+    echo -e "[TIP]   Run in the format: \"$0 \x1b[3mtarget\x1b[0m\""
     exit 1
 fi
 
 set -e
+
+# -f makes it so it won't error out if the file doesn't exist
+rm -f targets.tmp
+envsubst < "targets" > "targets.tmp"
+
+export $(grep -Ev '^#' config.aphro.tmp | xargs)
+
+pushd . 2>&1 > /dev/null
+
+trap 'popd -0 2>&1 > /dev/null' EXIT
 
 cd ../emulation
 
@@ -19,4 +28,12 @@ if [[ "$1" = "x86" ]]; then
     sed -i "s@%{BUILT_FILE}@aphrodite-$1.iso@g" bochsrc
 
     bochs -q
+else
+    if [[ "$TARGETS" =~ "$1" ]]; then
+        echo "[ERROR] Cannot emulate specified architecture \"$1\"."
+    else
+        echo "[ERROR] Unknown architecture \"$1\"."
+        echo "[TIP]   Check your spelling."
+    fi
+    exit 1
 fi
