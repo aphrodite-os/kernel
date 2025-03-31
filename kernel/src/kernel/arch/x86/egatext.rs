@@ -69,15 +69,23 @@ impl crate::display::TextDisplay for FramebufferInfo {
         Ok(())
     }
 
-    fn get_size(&self) -> (u32, u32) { (self.width, self.height) }
+    fn get_size(&self) -> Result<(u32, u32), crate::Error<'static>> {
+        Ok((self.width, self.height))
+    }
 
     fn scroll(&self) {
         let mut addr = self.address as usize;
         addr += self.pitch as usize;
-        unsafe { core::ptr::copy(addr as *const u8, self.address as usize as *mut u8, (self.pitch*(self.height-1)) as usize); }
+        unsafe {
+            core::ptr::copy(
+                addr as *const u8,
+                self.address as usize as *mut u8,
+                (self.pitch * (self.height - 1)) as usize,
+            );
+        }
 
         for x in 0..self.width {
-            self.write_char((x, self.height-1), b' ', crate::display::COLOR_DEFAULT);
+            self.write_char((x, self.height - 1), b' ', crate::display::COLOR_DEFAULT);
         }
     }
 }

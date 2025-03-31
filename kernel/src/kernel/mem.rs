@@ -66,7 +66,7 @@ static mut ALLOCATOR_MEMMAP: MaybeUninit<MemoryMap> = MaybeUninit::uninit();
 static mut ALLOCATOR_INITALIZED: bool = false;
 
 #[kernel_item(MemMapAlloc)]
-fn get_allocator() -> Option<&'static MemoryMapAlloc<'static>> {
+pub fn get_allocator() -> Option<&'static MemoryMapAlloc<'static>> {
     if unsafe { ALLOCATOR_INITALIZED } {
         #[allow(static_mut_refs)]
         return Some(unsafe { ALLOCATOR.assume_init_ref() });

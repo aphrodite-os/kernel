@@ -26,20 +26,21 @@ pub trait TextDisplay: core::fmt::Write {
         color: Color,
     ) -> Result<(), crate::Error<'static>>;
     /// Gets the size of the screen.
-    fn get_size(&self) -> (u32, u32);
+    fn get_size(&self) -> Result<(u32, u32), crate::Error<'static>>;
     /// Scroll the screen up one character. Clear the bottom row.
     fn scroll(&self);
 }
 
 impl dyn TextDisplay + '_ {
     /// Clears the screen.
-    pub fn clear_screen(&self, color: Color) {
-        let (width, height) = self.get_size();
+    pub fn clear_screen(&self, color: Color) -> Result<(), crate::Error<'static>> {
+        let (width, height) = self.get_size()?;
         for x in 0..width {
             for y in 0..height {
                 self.write_char((x, y), b' ', color).unwrap();
             }
         }
+        Ok(())
     }
 
     /// Writes a &str to the screen.
@@ -49,7 +50,7 @@ impl dyn TextDisplay + '_ {
         str: &str,
         color: Color,
     ) -> Result<(u32, u32), crate::Error<'static>> {
-        let (width, height) = self.get_size();
+        let (width, height) = self.get_size()?;
         let (mut x, mut y) = pos;
         for char in str.as_bytes() {
             if y >= height {
@@ -76,7 +77,7 @@ impl dyn TextDisplay + '_ {
         str: &[u8],
         color: Color,
     ) -> Result<(u32, u32), crate::Error<'static>> {
-        let (width, _) = self.get_size();
+        let (width, _) = self.get_size()?;
         let (mut x, mut y) = pos;
         for char in str {
             self.write_char((x, y), *char, color)?;
@@ -98,7 +99,9 @@ impl dyn TextDisplay + '_ {
 pub struct NoneTextDisplay {}
 
 impl TextDisplay for NoneTextDisplay {
-    fn get_size(&self) -> (u32, u32) { (1, 1) }
+    fn get_size(&self) -> Result<(u32, u32), crate::Error<'static>> {
+        Ok((1,1))
+    }
     fn write_char(&self, _: (u32, u32), _: u8, _: Color) -> Result<(), crate::Error<'static>> {
         Ok(())
     }

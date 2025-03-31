@@ -38,6 +38,8 @@ pub mod psfont;
 mod traits;
 mod util;
 
+pub(crate) mod power_on_tests;
+
 #[macro_use]
 pub(crate) mod cfg;
 

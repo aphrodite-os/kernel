@@ -61,7 +61,7 @@ macro_rules! message_funcs {
 
             /// Outputs a message u8 to the terminal.
             pub fn [< t $func_name u >](s: u8, info: &dyn crate::display::TextDisplay) -> Result<(), crate::Error<'static>> {
-                let (width, _) = info.get_size();
+                let (width, _) = info.get_size()?;
                 unsafe {
                     if cfg!($level = "false") {
                         return Ok(());
@@ -127,7 +127,7 @@ macro_rules! message_funcs {
 
             /// Outputs a message u8 to the terminal without a prefix.
             pub fn [< t $func_name unp >](s: u8, info: &dyn crate::display::TextDisplay) -> Result<(), crate::Error<'static>> {
-                let (width, _) = info.get_size();
+                let (width, _) = info.get_size()?;
                 unsafe {
                     if cfg!($level = "false") {
                         return Ok(());
