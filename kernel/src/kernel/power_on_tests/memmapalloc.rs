@@ -1,4 +1,5 @@
-use crate::{display::TextDisplay, output::*};
+use crate::display::TextDisplay;
+use crate::output::*;
 
 use core::alloc::{Allocator, Layout};
 

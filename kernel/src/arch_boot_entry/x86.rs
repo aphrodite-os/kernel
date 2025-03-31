@@ -179,13 +179,21 @@ extern "C" fn _start() -> ! {
                             // rawmemorymap's sections into a pointer to those sections.
 
                             for ele in &mut *memorysections {
-                                (*ele) = core::mem::transmute::<aphrodite::boot::MemoryMapping, aphrodite::multiboot2::MemorySection>(Into::<MemoryMapping>::into(*ele))
+                                (*ele) = core::mem::transmute::<
+                                    aphrodite::boot::MemoryMapping,
+                                    aphrodite::multiboot2::MemorySection,
+                                >(
+                                    Into::<MemoryMapping>::into(*ele)
+                                )
                             }
 
                             MM = MemoryMap {
                                 version: (*rawmemorymap).entry_version,
                                 entry_size: (*rawmemorymap).entry_size,
-                                sections: core::mem::transmute::<&mut [aphrodite::multiboot2::MemorySection], &[aphrodite::boot::MemoryMapping]>(memorysections),
+                                sections: core::mem::transmute::<
+                                    &mut [aphrodite::multiboot2::MemorySection],
+                                    &[aphrodite::boot::MemoryMapping],
+                                >(memorysections),
                             };
                             let mm2 = aphrodite::boot::MemoryMap {
                                 len: MM.sections.len() as u64,

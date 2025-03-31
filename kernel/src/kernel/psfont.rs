@@ -114,7 +114,9 @@ pub fn parse_pc_screen_font(data: RawPCScreenFont) -> Result<PCScreenFont, crate
                 flags: data.flags,
                 height: data.height,
                 width: data.width,
-                glyphs: Vec::from(core::mem::transmute::<&[u8], &[Glyph]>(data.glyphs.as_slice())),
+                glyphs: Vec::from(core::mem::transmute::<&[u8], &[Glyph]>(
+                    data.glyphs.as_slice(),
+                )),
                 unitable: Some(unitable),
             };
             return Ok(out);
@@ -125,7 +127,9 @@ pub fn parse_pc_screen_font(data: RawPCScreenFont) -> Result<PCScreenFont, crate
             flags: data.flags,
             height: data.height,
             width: data.width,
-            glyphs: Vec::from(core::mem::transmute::<&[u8], &[Glyph]>(data.glyphs.as_slice())),
+            glyphs: Vec::from(core::mem::transmute::<&[u8], &[Glyph]>(
+                data.glyphs.as_slice(),
+            )),
             unitable: None,
         };
         Ok(out)

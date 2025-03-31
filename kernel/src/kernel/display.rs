@@ -99,9 +99,7 @@ impl dyn TextDisplay + '_ {
 pub struct NoneTextDisplay {}
 
 impl TextDisplay for NoneTextDisplay {
-    fn get_size(&self) -> Result<(u32, u32), crate::Error<'static>> {
-        Ok((1,1))
-    }
+    fn get_size(&self) -> Result<(u32, u32), crate::Error<'static>> { Ok((1, 1)) }
     fn write_char(&self, _: (u32, u32), _: u8, _: Color) -> Result<(), crate::Error<'static>> {
         Ok(())
     }
