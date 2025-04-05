@@ -9,8 +9,6 @@ use core::ptr::{NonNull, null_mut};
 
 use crate::boot::{MemoryMap, MemoryType};
 
-use aphrodite_proc_macros::*;
-
 #[derive(Clone, Copy)]
 struct Allocation {
     /// Whether this allocation is used. This is used so that the
@@ -65,7 +63,6 @@ static mut ALLOCATOR: MaybeMemoryMapAlloc<'static> = MaybeMemoryMapAlloc::new(No
 static mut ALLOCATOR_MEMMAP: MaybeUninit<MemoryMap> = MaybeUninit::uninit();
 static mut ALLOCATOR_INITALIZED: bool = false;
 
-#[kernel_item(MemMapAlloc)]
 pub fn get_allocator() -> Option<&'static MemoryMapAlloc<'static>> {
     if unsafe { ALLOCATOR_INITALIZED } {
         #[allow(static_mut_refs)]
@@ -90,8 +87,7 @@ pub unsafe fn get_allocator_unchecked() -> &'static MemoryMapAlloc<'static> {
     }
 }
 
-#[kernel_item(MemMapAllocInit)]
-fn memory_map_alloc_init(memmap: crate::boot::MemoryMap) -> Result<(), crate::Error<'static>> {
+pub fn memory_map_alloc_init(memmap: crate::boot::MemoryMap) -> Result<(), crate::Error<'static>> {
     #[allow(static_mut_refs)]
     unsafe {
         ALLOCATOR_MEMMAP.write(memmap);

@@ -7,11 +7,8 @@ use crate::arch::output::*;
 use crate::display::{COLOR_DEFAULT, NoneTextDisplay};
 use crate::output::*;
 
-use aphrodite_proc_macros::*;
-
 /// The real entrypoint to the kernel. `internel/arch/*/entry.rs` files
 /// eventually call this.
-#[kernel_item(IndepBootEntry)]
 fn indep_boot_entry(
     display: Option<&dyn crate::display::TextDisplay>,
     #[allow(non_snake_case)] BI: &crate::boot::BootInfo,
@@ -24,11 +21,11 @@ fn indep_boot_entry(
 
     let display = display.unwrap_or(&NoneTextDisplay {});
 
-    display.clear_screen(COLOR_DEFAULT);
+    display.clear_screen(COLOR_DEFAULT).unwrap();
     sreset();
 
     let mem_map = BI.memory_map.unwrap();
-    crate::mem::MemMapAllocInit(mem_map).unwrap();
+    crate::mem::memory_map_alloc_init(mem_map).unwrap();
 
     crate::arch::alloc_available_boot();
 

@@ -14,6 +14,7 @@ VERSION=generate
 CONFIG_DISABLE_MULTIBOOT2_SUPPORT=false
 
 # Panic behavior. When debugging, generally halt on panic is more useful.
+# Halt on panic takes priority over spin on panic if both are enabled.
 CONFIG_HALT_ON_PANIC=true
 CONFIG_SPIN_ON_PANIC=false
 

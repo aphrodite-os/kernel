@@ -5,8 +5,8 @@ use core::arch::asm;
 
 pub mod egatext;
 mod gdt;
+mod interrupt_impls;
 pub mod interrupts;
-pub mod memory;
 pub mod output;
 pub mod paging;
 pub mod ports;
@@ -92,27 +92,63 @@ pub fn initalize_rtc() {
     unsafe { RTC_INITALIZED = true }
 }
 
-pub fn sleep(seconds: u32) { initalize_rtc(); }
-
 pub fn alloc_available_boot() {
     let irq = pop_irq();
-    let mut entries = vec![];
-    entries.push(gdt::GDT_NULL_ENTRY);
-    entries.push(GDTEntry {
-        limit: 0,
-        base: 0,
-        access: 0b10011011,
-        flags: 0b1100,
-    }); // kernel code segment
-    entries.push(GDTEntry {
-        limit: 0,
-        base: 0,
-        access: 0b10010011,
-        flags: 0b1100,
-    }); //
+    {
+        // GDT
+        let mut entries = vec![];
+        entries.push(gdt::GDT_NULL_ENTRY);
+        entries.push(GDTEntry {
+            limit: 0,
+            base: 0,
+            access: 0b10011011,
+            flags: 0b1100,
+        }); // kernel code segment, segment 0x08
+        entries.push(GDTEntry {
+            limit: 0,
+            base: 0,
+            access: 0b10010011,
+            flags: 0b1100,
+        }); // kernel data segment, segment 0x10
+        entries.push(GDTEntry {
+            limit: 0,
+            base: 0,
+            access: 0b11111011,
+            flags: 0b1100,
+        }); // user code segment, segment 0x18
+        entries.push(GDTEntry {
+            limit: 0,
+            base: 0,
+            access: 0b11110011,
+            flags: 0b1100,
+        }); // user data segment, segment 0x20
 
-    unsafe {
-        gdt::activate_gdt(gdt::write_gdt_entries(entries).unwrap());
+        unsafe {
+            gdt::activate_gdt(gdt::write_gdt_entries(entries).unwrap());
+        }
+
+        unsafe {
+            asm!(
+                "jmp 0x08:2",
+                "2:",
+                "mov ax, 0x10",
+                "mov ds, ax",
+                "mov es, ax",
+                "mov fs, ax",
+                "mov gs, ax",
+                "mov ss, ax",
+                out("ax") _
+            );
+        }
+    }
+    {
+        // IDT
+        let idt = self::interrupts::IdtBuilder::new()
+            .add_fn(0, interrupt_impls::int0, false, true)
+            .finish();
+        unsafe {
+            interrupts::activate_idt(idt);
+        }
     }
     restore_irq(irq);
 }

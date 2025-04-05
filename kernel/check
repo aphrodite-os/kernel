@@ -19,7 +19,7 @@
     real_check=false
 
     if [[ "$HAVE_GETOPT" = "true" ]]; then
-        LONGOPTS=real_check
+        LONGOPTS=real_check,real-check
         OPTIONS=c
 
         PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@") || (
@@ -30,7 +30,7 @@
 
         while true; do
             case "$1" in
-                -c|--real_check)
+                -c|--real_check|--real-check)
                     real_check=true
                     shift
                     ;;

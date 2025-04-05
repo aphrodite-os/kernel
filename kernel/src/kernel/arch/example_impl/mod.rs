@@ -23,28 +23,22 @@ pub mod interrupts {
     pub const USER_SYSCALL_VECTOR: u16 = 0xA0;
 
     /// Returns whether interrupts are enabled or not.
-    #[aphrodite_proc_macros::kernel_item(InterruptsCheck)]
     fn interrupts_enabled() -> bool { false }
 
     /// Enables interrupts.
-    #[aphrodite_proc_macros::kernel_item(InterruptsEnable)]
     fn enable_interrupts() {}
 
     /// Disables interrupts.
-    #[aphrodite_proc_macros::kernel_item(InterruptsDisable)]
     fn disable_interrupts() {}
 
     /// Disables interrupts and a value that can be used to restore them
     /// with [restore_irq].
-    #[aphrodite_proc_macros::kernel_item(InterruptsPop)]
     fn pop_irq() -> u64 { 0 }
 
     /// Restores interrupts after a [pop_irq] call.
-    #[aphrodite_proc_macros::kernel_item(InterruptsRestore)]
     fn restore_irq(_irq: u64) {}
 
     /// Activates an IDT.
-    #[aphrodite_proc_macros::kernel_item(ActivateIDT)]
     fn activate_idt(_idt: Idt) {}
 
     /// An IDT.

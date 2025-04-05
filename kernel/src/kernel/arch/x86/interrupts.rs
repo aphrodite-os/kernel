@@ -9,7 +9,6 @@ use core::mem::MaybeUninit;
 pub const USER_SYSCALL_VECTOR: u16 = 0xA0;
 
 /// Returns whether interrupts are enabled or not.
-#[aphrodite_proc_macros::kernel_item(InterruptsCheck)]
 pub fn interrupts_enabled() -> bool {
     let flags: u32;
     unsafe {
@@ -22,7 +21,6 @@ pub fn interrupts_enabled() -> bool {
 }
 
 /// Disables interrupts.
-#[aphrodite_proc_macros::kernel_item(InterruptsDisable)]
 pub fn disable_interrupts() { unsafe { asm!("cli") } }
 
 /// PoppedInterrupts implements drop and restores the interrupts upon being
@@ -37,7 +35,6 @@ impl Drop for PoppedInterrupts {
 }
 
 /// Disables interrupts and returns the value of them.
-#[aphrodite_proc_macros::kernel_item(InterruptsPop)]
 pub fn pop_irq() -> PoppedInterrupts {
     let flags: u32;
     unsafe {
@@ -51,7 +48,6 @@ pub fn pop_irq() -> PoppedInterrupts {
 }
 
 /// Restores interrupts after a [pop_irq] call.
-#[aphrodite_proc_macros::kernel_item(InterruptsRestore)]
 pub fn restore_irq(flags: PoppedInterrupts) {
     let flags = flags.0;
     unsafe {
@@ -76,7 +72,7 @@ unsafe fn load_idt(base: *const u8, size: usize) {
 }
 
 #[derive(Clone, Copy)]
-pub(super) struct IdtEntry {
+pub struct IdtEntry {
     pub offset_high: u16,
     pub data: u16,
     pub segment: u16,
@@ -108,8 +104,7 @@ impl From<IdtEntry> for RawIdtEntry {
 ///
 /// # Panics
 /// Panics if the global allocator has not been setup
-#[aphrodite_proc_macros::kernel_item(ActivateIDT)]
-fn activate_idt(idt: Idt) {
+pub unsafe fn activate_idt(idt: Idt) {
     let mut entries = alloc::vec::Vec::new();
     for i in 0..idt.len {
         if idt.using_raw[i] {
@@ -195,7 +190,7 @@ fn activate_idt(idt: Idt) {
 #[derive(Clone, Copy)]
 pub struct Idt {
     vectors: [u16; 256],
-    funcs: [MaybeUninit<fn()>; 256],
+    funcs: [MaybeUninit<unsafe fn()>; 256],
     user_callable: [bool; 256],
     exception: [bool; 256],
     raw_entries: [IdtEntry; 256],
@@ -207,7 +202,7 @@ pub struct Idt {
 #[derive(Clone, Copy)]
 pub struct IdtBuilder {
     vectors: [u16; 256],
-    funcs: [MaybeUninit<fn()>; 256],
+    funcs: [MaybeUninit<unsafe fn()>; 256],
     user_callable: [bool; 256],
     exception: [bool; 256],
     raw_entries: [IdtEntry; 256],
@@ -238,7 +233,7 @@ impl IdtBuilder {
     pub fn add_fn(
         &mut self,
         vector: u16,
-        func: fn(),
+        func: unsafe fn(),
         user_callable: bool,
         exception: bool,
     ) -> &mut Self {

@@ -9,10 +9,14 @@ use alloc::vec::Vec;
 /// The GDTR. Used internally in [activate_gdt].
 #[repr(C, packed)]
 struct Gdtr {
+    // raw pointer to the GDT
     base: *const u8,
+    // size of the GDT in bytes
     size: usize,
 }
 
+/// Activates the GDT using `lgdt`. Does NOT, I repeat, does NOT change the
+/// segment registers!
 pub unsafe fn activate_gdt(ptr: *const [u8]) {
     let gdtr = Gdtr {
         base: ptr as *const u8,

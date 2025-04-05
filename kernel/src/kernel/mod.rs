@@ -20,6 +20,7 @@
 #![allow(internal_features)]
 #![feature(core_intrinsics)]
 #![feature(vec_into_raw_parts)]
+#![feature(naked_functions)]
 
 extern crate alloc;
 

@@ -1,6 +1,6 @@
 //! Config-related stuff.
 
-/// C
+/// Get configurations as a certain type
 #[macro_export]
 macro_rules! cfg_int {
     ($cfg:literal, $type:ident) => {
