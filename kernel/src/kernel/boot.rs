@@ -135,7 +135,6 @@ impl core::iter::Iterator for MemoryMap {
 #[derive(Clone)]
 pub struct BootInfo<'a> {
     /// The commandline of the kernel.
-    /// See <https://aphrodite-os.github.io/book/command-line.html> for the format.
     pub cmdline: Option<&'static str>,
 
     /// The memory map provided by the bootloader. If None, the kernel will
@@ -147,4 +146,7 @@ pub struct BootInfo<'a> {
 
     /// Provides a way to display text.
     pub output: Option<&'a dyn crate::display::TextDisplay>,
+
+    /// The base address of the kernel
+    pub load_base: Option<u32>,
 }

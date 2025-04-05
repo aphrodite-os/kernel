@@ -2,8 +2,24 @@
 #![cfg(target_arch = "x86")]
 
 use core::alloc::Layout;
+use core::arch::asm;
 
 use alloc::vec::Vec;
+
+/// The GDTR. Used internally in [activate_gdt].
+#[repr(C, packed)]
+struct Gdtr {
+    base: *const u8,
+    size: usize,
+}
+
+pub unsafe fn activate_gdt(ptr: *const [u8]) {
+    let gdtr = Gdtr {
+        base: ptr as *const u8,
+        size: ptr.len(),
+    };
+    unsafe { asm!("lgdt {}", in(reg) (&gdtr) as *const Gdtr as usize) }
+}
 
 /// Writes a series of GDT entries to an allocated section of memory and returns
 /// a pointer.
@@ -33,6 +49,13 @@ pub struct GDTEntry {
     /// The flags of the entry.
     pub flags: u8,
 }
+
+pub const GDT_NULL_ENTRY: GDTEntry = GDTEntry {
+    limit: 0,
+    base: 0,
+    access: 0,
+    flags: 0,
+};
 
 /// An error returned by [GDTEntry::write_to_addr] when the limit is greater
 /// than 0xFFFFF.

@@ -15,7 +15,6 @@ use core::fmt::Debug;
 use core::panic::PanicInfo;
 
 use aphrodite::arch::egatext;
-use aphrodite::arch::enable_a20;
 use aphrodite::arch::output::*;
 use aphrodite::boot::{BootInfo, MemoryMapping};
 use aphrodite::display::COLOR_DEFAULT;
@@ -27,11 +26,20 @@ use aphrodite::output::*;
 #[cfg(not(CONFIG_DISABLE_MULTIBOOT2_SUPPORT))]
 #[unsafe(link_section = ".bootheader")]
 #[unsafe(no_mangle)]
-static MULTIBOOT2_HEADER: [u8; 24] = [
+static MULTIBOOT2_HEADER: [u8; 48] = [
     0xd6, 0x50, 0x52, 0xe8, // Magic number
     0x00, 0x00, 0x00, 0x00, // Architecture
     0x18, 0x00, 0x00, 0x00, // Size
     0x12, 0xaf, 0xad, 0x17, // Checksum
+
+    0x0A, 0x00, // Relocatable tag
+    0x00, 0x00, // Flags,
+    0x18, 0x00, 0x00, 0x00, // Size of tag
+    0x00, 0x00, 0x00, 0xB0, // Starting minimum location
+    0xFF, 0xFF, 0xFF, 0xFF, // Ending maximum location: End of 32-bit address space
+    0x00, 0x00, 0x00, 0x00, // Image alignment
+    0x01, 0x00, 0x00, 0x00, // Loading preference: lowest possible
+    
     0x00, 0x00, // End tag
     0x00, 0x00, // Flags
     0x08, 0x00, 0x00, 0x00, // Size
@@ -85,6 +93,7 @@ extern "C" fn _start() -> ! {
         memory_map: None,
         bootloader_name: None,
         output: None,
+        load_base: None,
     };
     unsafe {
         match MAGIC {
@@ -135,7 +144,7 @@ extern "C" fn _start() -> ! {
                             break;
                         },
                         4 => {
-                            // Basic memory information
+                            // Basic memory information, ignore
                             if current_tag.tag_len != 16 {
                                 // Unexpected size, something is probably up
                                 panic!("size of basic memory information tag != 16");
@@ -177,7 +186,7 @@ extern "C" fn _start() -> ! {
 
                             let memorysections: &'static mut [aphrodite::multiboot2::MemorySection] = &mut *core::ptr::from_raw_parts_mut((&mut (*rawmemorymap).sections[0]) as &mut MemorySection, (*rawmemorymap).sections.len());
                             // Above is a bit hard to understand, but what it does is transmute
-                            // rawmemorymap's sections into a pointer to those sections.
+                            // rawmemorymap's sections into a pointer to those sections
 
                             for ele in &mut *memorysections {
                                 (*ele) = core::mem::transmute::<
@@ -252,6 +261,20 @@ extern "C" fn _start() -> ! {
                             };
                             BI.output = Some(&FBI)
                         },
+                        21 => {
+                            // Image load base physical address
+                            if current_tag.tag_len != 12 {
+                                panic!("size of image load base physical address tag != 12");
+                            }
+                            let ptr = (ptr + size_of::<Tag>()) as *const u32;
+
+                            sdebugs("ptr: ");
+                            sdebugbnp(&aphrodite::usize_as_u8_slice(ptr as usize));
+                            sdebugsnp(" value: ");
+                            sdebugbnpln(&aphrodite::u32_as_u8_slice(*ptr));
+
+                            BI.load_base = Some(*ptr);
+                        },
                         _ => {
                             // Unknown/unimplemented tag type, ignore
                             swarnings("Unknown tag type ");
@@ -292,10 +315,7 @@ extern "C" fn _start() -> ! {
     sdebugsln("Bootloader information has been successfully loaded");
     sdebugunp(b'\n');
 
-    if !enable_a20() {
-        panic!("failed to enable a20 gate");
-    }
-    initalize_rtc();
+    aphrodite::arch::initalize_rtc();
 
     unsafe {
         if BI.output.clone().is_some() {
@@ -318,7 +338,7 @@ extern "C" fn _start() -> ! {
 
             let ega: &dyn aphrodite::display::TextDisplay = &framebuffer_info;
             framebuffer_info.disable_cursor();
-            ega.clear_screen(COLOR_DEFAULT);
+            ega.clear_screen(COLOR_DEFAULT).unwrap();
             toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
             toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
             toutputsln("Testing EGA Text framebuffer...", ega).unwrap();

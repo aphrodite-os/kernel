@@ -13,7 +13,9 @@ pub mod ports;
 
 mod constants;
 
+use alloc::vec;
 use constants::*;
+use gdt::GDTEntry;
 use interrupts::{pop_irq, restore_irq};
 use ports::{inb, outb};
 
@@ -77,83 +79,6 @@ pub fn get_keyboard_data() -> u8 { inb(0x60) }
 /// Sends data to the keyboard.
 pub fn send_keyboard_data(data: u8) { outb(0x60, data); }
 
-/// Tries to enable the a20 gate via the keyboard controller method.
-pub fn enable_a20_keyboard() {
-    let irq = pop_irq();
-
-    wait_for_keyboard_cmd();
-    send_keyboard_cmd(0xAD); // disable keyboard
-
-    wait_for_keyboard_cmd();
-    send_keyboard_cmd(0xD0); // read from input
-
-    wait_for_keyboard_cmd();
-    wait_for_keyboard_data();
-    let a = get_keyboard_data();
-
-    wait_for_keyboard_cmd();
-    send_keyboard_cmd(0xD1); // write to output
-
-    wait_for_keyboard_cmd();
-    send_keyboard_data(a | 2);
-
-    wait_for_keyboard_cmd();
-    send_keyboard_cmd(0xAE); // enable keyboard
-
-    restore_irq(irq);
-}
-
-/// Tries to enable the a20 gate via fast a20.
-/// Note that this may not work or do something unexpected.
-pub fn enable_a20_fasta20() {
-    let mut a = inb(0x92);
-    if a & 0b10 > 0 {
-        return;
-    }
-    a |= 0b10;
-    a &= 0xFE;
-    outb(0x92, a);
-}
-
-/// Tries to enable the a20 gate by reading from port 0xee.
-pub fn enable_a20_ee_port() { inb(0xee); }
-
-/// Tries to enable the a20 gate by trying many different methods
-/// and seeing what sticks.
-pub fn enable_a20() -> bool {
-    if test_a20() {
-        return true;
-    }
-
-    enable_a20_keyboard();
-    let mut i = 0u32;
-    while (!test_a20()) && i < 10000 {
-        i += 1;
-    }
-
-    if test_a20() {
-        return true;
-    }
-
-    enable_a20_ee_port();
-    let mut i = 0u32;
-    while (!test_a20()) && i < 10000 {
-        i += 1;
-    }
-
-    if test_a20() {
-        return true;
-    }
-
-    enable_a20_fasta20();
-    let mut i = 0u32;
-    while (!test_a20()) && i < 10000 {
-        i += 1;
-    }
-
-    return test_a20();
-}
-
 static mut RTC_INITALIZED: bool = false;
 
 pub fn initalize_rtc() {
@@ -167,10 +92,27 @@ pub fn initalize_rtc() {
     unsafe { RTC_INITALIZED = true }
 }
 
-pub fn sleep(seconds: u32) {
-    initalize_rtc();
-}
+pub fn sleep(seconds: u32) { initalize_rtc(); }
 
 pub fn alloc_available_boot() {
-    
+    let irq = pop_irq();
+    let mut entries = vec![];
+    entries.push(gdt::GDT_NULL_ENTRY);
+    entries.push(GDTEntry {
+        limit: 0,
+        base: 0,
+        access: 0b10011011,
+        flags: 0b1100,
+    }); // kernel code segment
+    entries.push(GDTEntry {
+        limit: 0,
+        base: 0,
+        access: 0b10010011,
+        flags: 0b1100,
+    }); //
+
+    unsafe {
+        gdt::activate_gdt(gdt::write_gdt_entries(entries).unwrap());
+    }
+    restore_irq(irq);
 }

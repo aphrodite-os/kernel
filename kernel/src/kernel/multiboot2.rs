@@ -197,7 +197,6 @@ pub struct Multiboot2BootInfo {
     // If you need it, good luck.
     /// We're provided with a C-style UTF-8(null-terminated UTF-8) string. This
     /// should contain the original pointer provided by the bootloader.
-    /// See <https://aphrodite-os.github.io/book/command-line.html> for the format.
     pub cmdline: Option<&'static core::ffi::CStr>,
 
     // Due to the way modules work, it's not easily possible to make a struct that contains all the
@@ -220,14 +219,16 @@ pub struct Multiboot2BootInfo {
     // it.
     /// Provides information on the framebuffer.
     pub framebuffer_info: Option<FramebufferInfo>,
+
     /// Color info, stored separately from [FramebufferInfo] because rust
     pub color_info: Option<ColorInfo>,
+
     // Even though SMBIOS is documented for Multiboot2, we're not using it and will instead search
     // for it ourselves. This is because right now I cannot figure out what format it provides
     // the SMBIOS table in.
 
-    // EFI memory map and image handle pointers are not included for portability.
-
-    // "Image load base physical address" is not included as at the moment the kernel is not
-    // relocatable.
+    // EFI memory map and image handle pointers are not included for portability. Yeah, that's what
+    // I'm calling it.
+    /// Base address of the kernel
+    pub load_base: Option<u32>,
 }

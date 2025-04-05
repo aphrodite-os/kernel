@@ -69,9 +69,9 @@ static mut ALLOCATOR_INITALIZED: bool = false;
 pub fn get_allocator() -> Option<&'static MemoryMapAlloc<'static>> {
     if unsafe { ALLOCATOR_INITALIZED } {
         #[allow(static_mut_refs)]
-        return Some(unsafe { ALLOCATOR.assume_init_ref() });
+        Some(unsafe { ALLOCATOR.assume_init_ref() })
     } else {
-        return None;
+        None
     }
 }
 

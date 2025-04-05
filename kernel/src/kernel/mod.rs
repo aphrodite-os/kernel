@@ -19,6 +19,7 @@
 #![feature(ptr_as_uninit)]
 #![allow(internal_features)]
 #![feature(core_intrinsics)]
+#![feature(vec_into_raw_parts)]
 
 extern crate alloc;
 

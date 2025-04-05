@@ -3,6 +3,7 @@
 #![allow(unexpected_cfgs)]
 #![allow(static_mut_refs)]
 
+use crate::arch::output::*;
 use crate::display::{COLOR_DEFAULT, NoneTextDisplay};
 use crate::output::*;
 
@@ -35,6 +36,15 @@ fn indep_boot_entry(
         crate::power_on_tests::run(display);
 
         tinfosln("Successfully ran all configured power on tests", display).unwrap();
+    }
+
+    if cfg!(CONFIG_PREUSER_OUTPUT_DEBUG = "true") {
+        if let Some(load_base) = BI.load_base {
+            sdebugs("Image load base address is ");
+            sdebugbnpln(&crate::u32_as_u8_slice(load_base));
+        } else {
+            sdebugsln("Image load base address was not provided");
+        }
     }
 
     loop {}
