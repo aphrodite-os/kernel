@@ -123,6 +123,12 @@ pub fn alloc_available_boot() {
                 base: 0,
                 access: 0xF2,
                 flags: 0xC,
+            },
+            GDTEntry { // Video RAM segment, segment 0x28
+                limit: 0xFFFFF,
+                base: 0,
+                access: 0x92,
+                flags: 0xC,
             }
         ]);
 
@@ -148,9 +154,11 @@ pub fn alloc_available_boot() {
         let idt = self::interrupts::IdtBuilder::new()
             .add_fn(0, interrupt_impls::int0, false, true)
             .finish();
+        sdebugsln("Prepared IDT");
         unsafe {
             interrupts::activate_idt(idt);
         }
+        sdebugsln("IDT activated; enabling interrupts");
         enable_interrupts();
         sdebugsln("IDT successfully loaded");
     }

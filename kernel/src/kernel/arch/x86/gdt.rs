@@ -71,18 +71,22 @@ const fn concat_arrays<T, const M: usize, const N: usize>(a: [T; M], b: [T; N]) 
     }
 }
 
-pub const fn serialize_gdt_entries(
-    entries: [GDTEntry; 5],
-) -> [u8; 5 * 8] {
+pub const fn serialize_gdt_entries(entries: [GDTEntry; 6]) -> [u8; 6 * 8] {
     concat_arrays(
         concat_arrays(
             concat_arrays(
-                concat_arrays(entries[0].serialize_panicing(), entries[1].serialize_panicing()),
-                entries[2].serialize_panicing(),
+                concat_arrays(
+                    concat_arrays(
+                        entries[0].serialize_panicing(),
+                        entries[1].serialize_panicing(),
+                    ),
+                    entries[2].serialize_panicing(),
+                ),
+                entries[3].serialize_panicing(),
             ),
-            entries[3].serialize_panicing(),
+            entries[4].serialize_panicing(),
         ),
-        entries[4].serialize_panicing(),
+        entries[5].serialize_panicing(),
     )
 }
 

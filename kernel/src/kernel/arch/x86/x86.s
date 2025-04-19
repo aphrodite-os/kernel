@@ -9,7 +9,7 @@ reloadSegments:
    mov   fs, ax
    mov   gs, ax
    mov   ss, ax
-   xchg  bx, bx
+   #xchg  bx, bx
    call get_retaddr_ppro
    add eax, 7
    pushd 0x8

@@ -5,8 +5,7 @@
 use core::arch::asm;
 use core::mem::MaybeUninit;
 
-/// The syscall vector.
-pub const USER_SYSCALL_VECTOR: u16 = 0xA0;
+use crate::arch::x86::*;
 
 /// Returns whether interrupts are enabled or not.
 pub fn interrupts_enabled() -> bool {
@@ -93,6 +92,7 @@ pub struct IdtEntry {
 }
 
 #[repr(C, packed)]
+#[derive(Clone, Copy)]
 struct RawIdtEntry {
     pub offset_high: u16,
     pub data: u16,
@@ -117,10 +117,12 @@ impl From<IdtEntry> for RawIdtEntry {
 /// # Panics
 /// Panics if the global allocator has not been setup
 pub unsafe fn activate_idt(idt: Idt) {
-    let mut entries = alloc::vec::Vec::new();
+    let mut entries = [IdtEntry {offset_high: 0, data: 0, segment: 0, offset_low: 0, vector: 0}; 256];
+    let mut f = 0;
     for i in 0..idt.len {
         if idt.using_raw[i] {
-            entries.push(idt.raw_entries[i]);
+            entries[f] = idt.raw_entries[i];
+            f += 1;
             continue;
         }
         let vector = idt.vectors[i];
@@ -143,58 +145,65 @@ pub unsafe fn activate_idt(idt: Idt) {
         } else {
             entry.data |= 0b111000000000;
         }
-        entries.push(entry);
+        entries[f] = entry;
+        f += 1;
     }
     entries.sort_by(|ele1: &IdtEntry, ele2: &IdtEntry| ele1.vector.cmp(&ele2.vector));
+    sdebugsln("IDT entries prepared and sorted");
     let mut last_vector = 0u16;
     let mut start = true;
 
-    let mut entries2 = alloc::vec::Vec::new();
+    let mut entries2 = [IdtEntry {offset_high: 0, data: 0, segment: 0, offset_low: 0, vector: 0}; 256];
+    f = 0;
 
     for entry in &entries {
         if start {
             let mut vector = entry.vector;
             while vector > 0 {
-                entries2.push(IdtEntry {
+                entries2[f] = IdtEntry {
                     offset_high: 0,
                     data: 0,
                     segment: 0,
                     offset_low: 0,
                     vector: 0,
-                });
+                };
                 vector -= 1;
+                f += 1;
             }
             last_vector = entry.vector;
-            entries2.push(*entry);
+            entries2[f] = *entry;
+            f += 1;
             start = false;
             continue;
         }
         if entry.vector - last_vector > 0 {
             let mut vector = entry.vector - last_vector;
             while vector > 0 {
-                entries2.push(IdtEntry {
+                entries2[f] = IdtEntry {
                     offset_high: 0,
                     data: 0,
                     segment: 0,
                     offset_low: 0,
                     vector: 0,
-                });
+                };
                 vector -= 1;
+                f += 1;
             }
         }
         last_vector = entry.vector;
-        entries2.push(*entry);
+        entries2[f] = *entry;
+        f += 1;
     }
 
-    let mut raw_entries: alloc::vec::Vec<RawIdtEntry, _> = alloc::vec::Vec::new();
+    let mut raw_entries = [RawIdtEntry { offset_high: 0, data: 0, segment: 0, offset_low: 0}; 256];
+    f = 0;
     for entry in &entries2 {
-        raw_entries.push(RawIdtEntry::from(*entry));
+        raw_entries[f] = RawIdtEntry::from(*entry);
+        f += 1;
     }
-
-    let raw_entries = raw_entries.into_raw_parts();
 
     unsafe {
-        load_idt(raw_entries.0 as *const u8, (idt.len * 8) - 1);
+        load_idt((&raw_entries) as *const [RawIdtEntry; 256] as *const u8, (idt.len * 8) - 1);
     }
 }
 

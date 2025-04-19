@@ -29,6 +29,8 @@ pub fn indep_boot_entry(
     crate::arch::alloc_available_boot();
 
     if cfg!(not(CONFIG_POWERON_TESTS = "false")) {
+        sinfosln("Running power on tests...");
+
         crate::power_on_tests::run(display);
 
         tinfosln("Successfully ran all configured power on tests", display).unwrap();
