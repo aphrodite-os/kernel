@@ -2,6 +2,7 @@ display_library: x, options="gui_debug"
 port_e9_hack: enabled=1
 cpu: reset_on_triple_fault=0, model=corei7_icelake_u
 magic_break: enabled=1
+clock: sync=realtime, time0=local
 
 ata0-master: type=cdrom, path=../kernel/%{BUILT_FILE}, status=inserted
 boot: cdrom
