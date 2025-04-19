@@ -76,12 +76,19 @@ fn main() -> Result<(), std::io::Error> {
         .arg("-o")
         .arg(format!("{}/x86_asm.o", std::env::var("OUT_DIR").unwrap()))
         .spawn()?
-        .wait()?.success() {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Assembler failed to run"));
-        } else {
-            println!("cargo::rustc-link-arg={}/x86_asm.o", std::env::var("OUT_DIR").unwrap());
-        }
+        .wait()?
+        .success()
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Assembler failed to run",
+        ));
+    } else {
+        println!(
+            "cargo::rustc-link-arg={}/x86_asm.o",
+            std::env::var("OUT_DIR").unwrap()
+        );
+    }
 
     Ok(())
-
 }

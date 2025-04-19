@@ -16,8 +16,8 @@ mod constants;
 use constants::*;
 use gdt::GDTEntry;
 use interrupts::{disable_interrupts, enable_interrupts, pop_irq, restore_irq};
-use ports::{inb, outb};
 use output::*;
+use ports::{inb, outb};
 
 /// Returns the most specific architecture available.
 pub const fn get_arch() -> super::Architecture { super::Architecture::X86 }
@@ -100,36 +100,41 @@ pub fn alloc_available_boot() {
 
         let entries = gdt::serialize_gdt_entries([
             gdt::GDT_NULL_ENTRY,
-            GDTEntry { // kernel code segment, segment 0x08
+            GDTEntry {
+                // kernel code segment, segment 0x08
                 limit: 0xFFFFF,
                 base: 0,
                 access: 0x9A,
                 flags: 0xC,
             },
-            GDTEntry { // kernel data segment, segment 0x10
+            GDTEntry {
+                // kernel data segment, segment 0x10
                 limit: 0xFFFFF,
                 base: 0,
                 access: 0x92,
                 flags: 0xC,
             },
-            GDTEntry { // user code segment, segment 0x18
+            GDTEntry {
+                // user code segment, segment 0x18
                 limit: 0xFFFFF,
                 base: 0,
                 access: 0xFA,
                 flags: 0xC,
             },
-            GDTEntry { // user data segment, segment 0x20
+            GDTEntry {
+                // user data segment, segment 0x20
                 limit: 0xFFFFF,
                 base: 0,
                 access: 0xF2,
                 flags: 0xC,
             },
-            GDTEntry { // Video RAM segment, segment 0x28
+            GDTEntry {
+                // Video RAM segment, segment 0x28
                 limit: 0xFFFFF,
                 base: 0,
                 access: 0x92,
                 flags: 0xC,
-            }
+            },
         ]);
 
         sdebugsln("GDT prepared");

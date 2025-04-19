@@ -310,7 +310,7 @@ extern "C" fn _start() -> ! {
     sdebugsln("Bootloader information has been successfully loaded");
     sdebugunp(b'\n');
 
-    //aphrodite::arch::initalize_rtc();
+    // aphrodite::arch::initalize_rtc();
 
     unsafe {
         if BI.output.clone().is_some() {
@@ -328,7 +328,6 @@ extern "C" fn _start() -> ! {
             ));
             sdebugs("Framebuffer bpp: ");
             sdebugbnpln(&aphrodite::u8_as_u8_slice(framebuffer_info.bpp));
-
 
             let ega: &dyn aphrodite::display::TextDisplay = &framebuffer_info;
 

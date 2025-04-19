@@ -74,10 +74,7 @@ unsafe fn load_idt(base: *const u8, size: usize) {
         size: 0,
     };
     unsafe {
-        IDTR = Idtr {
-            base,
-            size,
-        };
+        IDTR = Idtr { base, size };
     }
     unsafe { asm!("lidt {}", sym IDTR) }
 }
@@ -117,7 +114,13 @@ impl From<IdtEntry> for RawIdtEntry {
 /// # Panics
 /// Panics if the global allocator has not been setup
 pub unsafe fn activate_idt(idt: Idt) {
-    let mut entries = [IdtEntry {offset_high: 0, data: 0, segment: 0, offset_low: 0, vector: 0}; 256];
+    let mut entries = [IdtEntry {
+        offset_high: 0,
+        data: 0,
+        segment: 0,
+        offset_low: 0,
+        vector: 0,
+    }; 256];
     let mut f = 0;
     for i in 0..idt.len {
         if idt.using_raw[i] {
@@ -153,7 +156,13 @@ pub unsafe fn activate_idt(idt: Idt) {
     let mut last_vector = 0u16;
     let mut start = true;
 
-    let mut entries2 = [IdtEntry {offset_high: 0, data: 0, segment: 0, offset_low: 0, vector: 0}; 256];
+    let mut entries2 = [IdtEntry {
+        offset_high: 0,
+        data: 0,
+        segment: 0,
+        offset_low: 0,
+        vector: 0,
+    }; 256];
     f = 0;
 
     for entry in &entries {
@@ -195,7 +204,12 @@ pub unsafe fn activate_idt(idt: Idt) {
         f += 1;
     }
 
-    let mut raw_entries = [RawIdtEntry { offset_high: 0, data: 0, segment: 0, offset_low: 0}; 256];
+    let mut raw_entries = [RawIdtEntry {
+        offset_high: 0,
+        data: 0,
+        segment: 0,
+        offset_low: 0,
+    }; 256];
     f = 0;
     for entry in &entries2 {
         raw_entries[f] = RawIdtEntry::from(*entry);
@@ -203,7 +217,10 @@ pub unsafe fn activate_idt(idt: Idt) {
     }
 
     unsafe {
-        load_idt((&raw_entries) as *const [RawIdtEntry; 256] as *const u8, (idt.len * 8) - 1);
+        load_idt(
+            (&raw_entries) as *const [RawIdtEntry; 256] as *const u8,
+            (idt.len * 8) - 1,
+        );
     }
 }
 
