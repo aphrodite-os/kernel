@@ -1,4 +1,6 @@
-fn main() {
+fn main() -> Result<(), std::io::Error> {
+    println!("cargo:rerun-if-changed=src/kernel/arch/x86/change_code_segment.s");
+
     let env = std::env::vars();
 
     // Begin checks
@@ -49,6 +51,10 @@ fn main() {
     println!(
         r#"cargo:rustc-check-cfg=cfg(CONFIG_POWERON_TEST_ALLOC, values("true", "false", none()))"#
     );
+
+    println!(
+        r#"cargo:rustc-check-cfg=cfg(CONFIG_POWERON_TEST_DISPLAY, values("true", "false", none()))"#
+    );
     // End checks
 
     // Configuration name used when a config is required but should always evaluate
@@ -62,4 +68,20 @@ fn main() {
         println!("cargo:rerun-if-env-changed={}", var);
         println!("cargo:rustc-cfg={}=\"{}\"", var, val);
     }
+
+    if !std::process::Command::new("as")
+        .arg("src/kernel/arch/x86/x86.s")
+        .arg("-march=i686")
+        .arg("--32")
+        .arg("-o")
+        .arg(format!("{}/x86_asm.o", std::env::var("OUT_DIR").unwrap()))
+        .spawn()?
+        .wait()?.success() {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Assembler failed to run"));
+        } else {
+            println!("cargo::rustc-link-arg={}/x86_asm.o", std::env::var("OUT_DIR").unwrap());
+        }
+
+    Ok(())
+
 }

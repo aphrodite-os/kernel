@@ -23,6 +23,9 @@ pub fn interrupts_enabled() -> bool {
 /// Disables interrupts.
 pub fn disable_interrupts() { unsafe { asm!("cli") } }
 
+/// Enables interrupts.
+pub fn enable_interrupts() { unsafe { asm!("sti") } }
+
 /// PoppedInterrupts implements drop and restores the interrupts upon being
 /// dropped. This is useful in functions where you need interrupts disabled
 /// during it but also want to use functions like [Result::unwrap] or
@@ -67,8 +70,17 @@ struct Idtr {
 
 /// Loads an interrupt descriptor table.
 unsafe fn load_idt(base: *const u8, size: usize) {
-    let idtr = Idtr { base, size };
-    unsafe { asm!("lidt {}", in(reg) (&idtr) as *const Idtr as usize) }
+    static mut IDTR: Idtr = Idtr {
+        base: 0 as *const u8,
+        size: 0,
+    };
+    unsafe {
+        IDTR = Idtr {
+            base,
+            size,
+        };
+    }
+    unsafe { asm!("lidt {}", sym IDTR) }
 }
 
 #[derive(Clone, Copy)]

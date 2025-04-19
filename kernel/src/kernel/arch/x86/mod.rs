@@ -13,11 +13,11 @@ pub mod ports;
 
 mod constants;
 
-use alloc::vec;
 use constants::*;
 use gdt::GDTEntry;
-use interrupts::{pop_irq, restore_irq};
+use interrupts::{disable_interrupts, enable_interrupts, pop_irq, restore_irq};
 use ports::{inb, outb};
+use output::*;
 
 /// Returns the most specific architecture available.
 pub const fn get_arch() -> super::Architecture { super::Architecture::X86 }
@@ -93,62 +93,65 @@ pub fn initalize_rtc() {
 }
 
 pub fn alloc_available_boot() {
-    let irq = pop_irq();
+    disable_interrupts();
     {
         // GDT
-        let mut entries = vec![];
-        entries.push(gdt::GDT_NULL_ENTRY);
-        entries.push(GDTEntry {
-            limit: 0,
-            base: 0,
-            access: 0b10011011,
-            flags: 0b1100,
-        }); // kernel code segment, segment 0x08
-        entries.push(GDTEntry {
-            limit: 0,
-            base: 0,
-            access: 0b10010011,
-            flags: 0b1100,
-        }); // kernel data segment, segment 0x10
-        entries.push(GDTEntry {
-            limit: 0,
-            base: 0,
-            access: 0b11111011,
-            flags: 0b1100,
-        }); // user code segment, segment 0x18
-        entries.push(GDTEntry {
-            limit: 0,
-            base: 0,
-            access: 0b11110011,
-            flags: 0b1100,
-        }); // user data segment, segment 0x20
+        sdebugsln("Setting up GDT");
+
+        let entries = gdt::serialize_gdt_entries([
+            gdt::GDT_NULL_ENTRY,
+            GDTEntry { // kernel code segment, segment 0x08
+                limit: 0xFFFFF,
+                base: 0,
+                access: 0x9A,
+                flags: 0xC,
+            },
+            GDTEntry { // kernel data segment, segment 0x10
+                limit: 0xFFFFF,
+                base: 0,
+                access: 0x92,
+                flags: 0xC,
+            },
+            GDTEntry { // user code segment, segment 0x18
+                limit: 0xFFFFF,
+                base: 0,
+                access: 0xFA,
+                flags: 0xC,
+            },
+            GDTEntry { // user data segment, segment 0x20
+                limit: 0xFFFFF,
+                base: 0,
+                access: 0xF2,
+                flags: 0xC,
+            }
+        ]);
+
+        sdebugsln("GDT prepared");
 
         unsafe {
-            gdt::activate_gdt(gdt::write_gdt_entries(entries).unwrap());
+            gdt::activate_gdt(&entries);
         }
+
+        sdebugsln("GDT successfully activated; resetting segment registers");
 
         unsafe {
             asm!(
-                "jmp 0x08:2",
-                "2:",
-                "mov ax, 0x10",
-                "mov ds, ax",
-                "mov es, ax",
-                "mov fs, ax",
-                "mov gs, ax",
-                "mov ss, ax",
+                "call reloadSegments", // I hate rust's inline assembly
                 out("ax") _
             );
         }
+        sdebugsln("Segment registers reset");
     }
     {
         // IDT
+        sdebugsln("Setting up IDT");
         let idt = self::interrupts::IdtBuilder::new()
             .add_fn(0, interrupt_impls::int0, false, true)
             .finish();
         unsafe {
             interrupts::activate_idt(idt);
         }
+        enable_interrupts();
+        sdebugsln("IDT successfully loaded");
     }
-    restore_irq(irq);
 }

@@ -27,7 +27,7 @@ pub fn run(display: &dyn TextDisplay) {
         tdebugsnpln(" byte(s) of memory...", display).unwrap();
 
         let allocation = allocator.allocate(Layout::from_size_align(size, 1).unwrap());
-        if let Err(_) = allocation {
+        if allocation.is_err() {
             terrors("Failed to allocate: ", display).unwrap();
             unsafe { crate::mem::LAST_MEMMAP_ERR.unwrap_err().display_np(display) }
             panic!("Allocator test failure");
@@ -51,6 +51,5 @@ pub fn run(display: &dyn TextDisplay) {
                 tdebugsln("Successfully deallocated!", display).unwrap();
             }
         }
-        tdebugsln("", display).unwrap();
     }
 }

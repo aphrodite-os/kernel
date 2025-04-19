@@ -7,6 +7,7 @@
 #![deny(rustdoc::invalid_html_tags)]
 #![deny(rustdoc::invalid_rust_codeblocks)]
 #![deny(unsafe_op_in_unsafe_fn)]
+#![allow(incomplete_features)]
 #![feature(ptr_metadata)]
 #![feature(const_trait_impl)]
 #![feature(f128)]
@@ -21,6 +22,7 @@
 #![feature(core_intrinsics)]
 #![feature(vec_into_raw_parts)]
 #![feature(naked_functions)]
+#![feature(generic_const_exprs)]
 
 extern crate alloc;
 

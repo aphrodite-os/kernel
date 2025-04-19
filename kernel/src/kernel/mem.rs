@@ -199,7 +199,7 @@ impl<'a> MemoryMapAlloc<'a> {
                 }
             }
         }
-        if out.allocations == core::ptr::null_mut() {
+        if out.allocations.is_null() {
             return Err(crate::Error::new(
                 "no free memory with space for 32 allocations",
                 ALLOCATIONS_NOT_ENOUGH_SPACE,
@@ -341,7 +341,7 @@ impl<'a> MemoryMapAlloc<'a> {
     /// Finds a free block of memory that can fit the requested size and
     /// alignment
     fn find_free_block(&self, size: u64, align: usize) -> Option<u64> {
-        for mapping in self.memory_map.clone() {
+        for mapping in *self.memory_map {
             if mapping.len < size {
                 continue;
             }

@@ -4,12 +4,12 @@
 #![allow(static_mut_refs)]
 
 use crate::arch::output::*;
-use crate::display::{COLOR_DEFAULT, NoneTextDisplay};
+use crate::display::NoneTextDisplay;
 use crate::output::*;
 
 /// The real entrypoint to the kernel. `internel/arch/*/entry.rs` files
 /// eventually call this.
-fn indep_boot_entry(
+pub fn indep_boot_entry(
     display: Option<&dyn crate::display::TextDisplay>,
     #[allow(non_snake_case)] BI: &crate::boot::BootInfo,
 ) -> ! {
@@ -19,10 +19,9 @@ fn indep_boot_entry(
         "Somehow the kernel successfully booted into IndepBootEntry with a dummy architecture"
     );
 
-    let display = display.unwrap_or(&NoneTextDisplay {});
+    sdebugsln("IndepBootEntry running");
 
-    display.clear_screen(COLOR_DEFAULT).unwrap();
-    sreset();
+    let display = display.unwrap_or(&NoneTextDisplay {});
 
     let mem_map = BI.memory_map.unwrap();
     crate::mem::memory_map_alloc_init(mem_map).unwrap();

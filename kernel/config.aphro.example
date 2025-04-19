@@ -45,4 +45,7 @@ CONFIG_POWERON_TESTS=true
 
 # Whether to run the allocator power on test.
 CONFIG_POWERON_TEST_ALLOC=true
+
+# Whether to run the display power on test.
+CONFIG_POWERON_TEST_DISPLAY=true
 # End configs

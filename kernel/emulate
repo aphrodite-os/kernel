@@ -27,7 +27,7 @@ if [[ "$1" = "x86" ]]; then
 
     sed -i "s@%{BUILT_FILE}@aphrodite-$1.iso@g" bochsrc
 
-    bochs -q
+    bochs -q -debugger
 else
     if [[ "$TARGETS" =~ "$1" ]]; then
         echo "[ERROR] Cannot emulate specified architecture \"$1\"."

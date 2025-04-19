@@ -54,18 +54,18 @@ pub struct MemorySection {
     reserved: u32,
 }
 
-impl Into<crate::boot::MemoryMapping> for MemorySection {
-    fn into(self) -> crate::boot::MemoryMapping {
+impl From<MemorySection> for crate::boot::MemoryMapping {
+    fn from(val: MemorySection) -> Self {
         MemoryMapping {
-            mem_type: match self.mem_type {
+            mem_type: match val.mem_type {
                 1 => crate::boot::MemoryType::Free,
                 2 => crate::boot::MemoryType::HardwareReserved,
                 3 => crate::boot::MemoryType::HardwareSpecific(3, false),
                 5 => crate::boot::MemoryType::Faulty,
                 _ => crate::boot::MemoryType::Reserved,
             },
-            start: self.base_addr,
-            len: self.length,
+            start: val.base_addr,
+            len: val.length,
         }
     }
 }

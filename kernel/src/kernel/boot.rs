@@ -127,7 +127,7 @@ impl core::iter::Iterator for MemoryMap {
             self.reset_iter();
             return None;
         }
-        Some(self.sections[self.idx - 1].into())
+        Some(self.sections[self.idx - 1])
     }
 }
 

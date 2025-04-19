@@ -122,7 +122,7 @@
             echo "[INFO] Checking target with clippy"
             cargo clippy --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
             echo "[INFO] Building target"
-            cargo build --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target 2>/dev/null
+            cargo build --target "$real_target" --release -Zbuild-std=core,alloc --bin entrypoint_$target
             cp "target/$(echo $target_json | sed 's/\.json//')/release/entrypoint_$target" kernel-$target
 
             if [[ "$CONFIG_BUILD_GRUB" = "true" ]]; then

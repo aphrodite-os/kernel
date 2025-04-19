@@ -17,11 +17,9 @@ use core::panic::PanicInfo;
 use aphrodite::arch::egatext;
 use aphrodite::arch::output::*;
 use aphrodite::boot::{BootInfo, MemoryMapping};
-use aphrodite::display::COLOR_DEFAULT;
 use aphrodite::multiboot2::{
     FramebufferInfo, MemoryMap, MemorySection, RawMemoryMap, RootTag, Tag,
 };
-use aphrodite::output::*;
 
 #[cfg(not(CONFIG_DISABLE_MULTIBOOT2_SUPPORT))]
 #[unsafe(link_section = ".bootheader")]
@@ -34,7 +32,7 @@ static MULTIBOOT2_HEADER: [u8; 48] = [
     0x0A, 0x00, // Relocatable tag
     0x00, 0x00, // Flags,
     0x18, 0x00, 0x00, 0x00, // Size of tag
-    0x00, 0x00, 0x00, 0xB0, // Starting minimum location
+    0x00, 0x00, 0x00, 0x00, // Starting minimum location
     0xFF, 0xFF, 0xFF, 0xFF, // Ending maximum location: End of 32-bit address space
     0x00, 0x00, 0x00, 0x00, // Image alignment
     0x01, 0x00, 0x00, 0x00, // Loading preference: lowest possible
@@ -70,7 +68,6 @@ static mut MAGIC: u32 = 0xFFFFFFFF;
 
 #[unsafe(link_section = ".start")]
 #[unsafe(no_mangle)]
-#[aphrodite_proc_macros::kernel_item(ArchBootEntry)]
 extern "C" fn _start() -> ! {
     unsafe {
         // Copy values provided by the bootloader out
@@ -313,7 +310,7 @@ extern "C" fn _start() -> ! {
     sdebugsln("Bootloader information has been successfully loaded");
     sdebugunp(b'\n');
 
-    aphrodite::arch::initalize_rtc();
+    //aphrodite::arch::initalize_rtc();
 
     unsafe {
         if BI.output.clone().is_some() {
@@ -332,20 +329,14 @@ extern "C" fn _start() -> ! {
             sdebugs("Framebuffer bpp: ");
             sdebugbnpln(&aphrodite::u8_as_u8_slice(framebuffer_info.bpp));
 
-            sdebugsln("Beginning test output to screen...");
 
             let ega: &dyn aphrodite::display::TextDisplay = &framebuffer_info;
-            framebuffer_info.disable_cursor();
-            ega.clear_screen(COLOR_DEFAULT).unwrap();
-            toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
-            toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
-            toutputsln("Testing EGA Text framebuffer...", ega).unwrap();
 
-            aphrodite::indep_boot_entry::IndepBootEntry(Some(ega), &BI);
+            aphrodite::indep_boot_entry::indep_boot_entry(Some(ega), &BI);
         }
     }
 
-    aphrodite::indep_boot_entry::IndepBootEntry(None, &BI);
+    aphrodite::indep_boot_entry::indep_boot_entry(None, &BI);
 }
 
 #[unsafe(link_section = ".panic")]
