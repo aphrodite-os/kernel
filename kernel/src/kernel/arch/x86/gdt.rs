@@ -4,6 +4,12 @@
 use core::alloc::Layout;
 use core::arch::asm;
 
+pub const GDT_KERNEL_CODE_SEGMENT: u16 = 0x08;
+pub const GDT_KERNEL_DATA_SEGMENT: u16 = 0x10;
+pub const GDT_USER_CODE_SEGMENT: u16 = 0x18;
+pub const GDT_USER_DATA_SEGMENT: u16 = 0x20;
+pub const GDT_OTHER_DATA_SEGMENT: u16 = 0x28;
+
 /// The GDTR. Used internally in [activate_gdt].
 #[repr(C, packed)]
 #[derive(Clone, Copy)]

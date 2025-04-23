@@ -109,10 +109,7 @@ impl From<IdtEntry> for RawIdtEntry {
 }
 
 /// Activate an IDT. Requires that all handlers can properly handle the calling
-/// convention and are in GDT segment 1.
-///
-/// # Panics
-/// Panics if the global allocator has not been setup
+/// convention and are in GDT segment gdt::GDT_KERNEL_CODE_SEGMENT.
 pub unsafe fn activate_idt(idt: Idt) {
     let mut entries = [IdtEntry {
         offset_high: 0,
@@ -121,6 +118,7 @@ pub unsafe fn activate_idt(idt: Idt) {
         offset_low: 0,
         vector: 0,
     }; 256];
+    let entries_len = idt.len;
     let mut f = 0;
     for i in 0..idt.len {
         if idt.using_raw[i] {
@@ -134,9 +132,9 @@ pub unsafe fn activate_idt(idt: Idt) {
         let exception = idt.exception[i];
 
         let mut entry = IdtEntry {
-            offset_high: (func & 0xFFFF0000) as u16,
+            offset_high: ((func & 0xFFFF0000) >> 16) as u16,
             data: 0b1000000000000000,
-            segment: 1,
+            segment: super::gdt::GDT_KERNEL_CODE_SEGMENT,
             offset_low: (func & 0xFFFF) as u16,
             vector,
         };
@@ -148,6 +146,8 @@ pub unsafe fn activate_idt(idt: Idt) {
         } else {
             entry.data |= 0b111000000000;
         }
+        sdebugs("Entry vector=");
+        sdebugbnpln(&crate::u16_as_u8_slice(entry.vector));
         entries[f] = entry;
         f += 1;
     }
@@ -165,7 +165,11 @@ pub unsafe fn activate_idt(idt: Idt) {
     }; 256];
     f = 0;
 
-    for entry in &entries {
+    for entry in &entries[..entries_len] {
+        sdebugs("Entry vector=");
+        sdebugbnp(&crate::u16_as_u8_slice(entry.vector));
+        sdebugsnp(" f=");
+        sdebugbnpln(&crate::usize_as_u8_slice(f));
         if start {
             let mut vector = entry.vector;
             while vector > 0 {

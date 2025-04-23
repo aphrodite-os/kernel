@@ -1,7 +1,9 @@
 //! Functions and types related to paging.
 #![cfg(target_arch = "x86")]
 
-use core::arch::asm;
+use core::{arch::asm, mem::MaybeUninit};
+
+use super::cpuid;
 
 /// One page directory entry. Use [PageDirectoryEntry::create_fourmb] or
 /// [PageDirectoryEntry::create_other] to make these.
@@ -113,12 +115,31 @@ impl PageDirectoryEntry {
     }
 }
 
-/// Kind of cursed, but DSTs aren't allowed in statics.
-static mut PAGE_DIRECTORY: PageDirectoryEntry =
-    PageDirectoryEntry::create_other(0, false, 0, false, false, false, false, false, false, false);
+static mut PAGE_DIRECTORY: MaybeUninit<PageDirectoryEntry> = MaybeUninit::uninit();
 
 /// Initalize paging.
-pub fn initalize_paging() {}
+pub fn initalize_paging(pae: bool) {
+    if cpuid(1).1 & 1<<6 != 0 && pae {
+        unsafe {
+            asm!(
+                "mov eax, cr4",
+                "or eax, 0b100000",
+                "mov cr4, eax",
+                out("eax") _
+            )
+        }
+    }
+    #[allow(static_mut_refs)]
+    unsafe {
+        asm!(
+            "mov cr3, eax",
+            "mov eax, cr0",
+            "or eax, 0x80000001",
+            "mov cr0, eax",
+            in("eax") PAGE_DIRECTORY.as_ptr(), lateout("eax") _
+        )
+    }
+}
 
 /// Disables paging by clearing bit 31 in the cr0 register.
 pub fn disable_paging() {

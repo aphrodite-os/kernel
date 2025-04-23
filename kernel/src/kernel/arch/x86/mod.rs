@@ -158,6 +158,7 @@ pub fn alloc_available_boot() {
         sdebugsln("Setting up IDT");
         let idt = self::interrupts::IdtBuilder::new()
             .add_fn(0, interrupt_impls::int0, false, true)
+            .add_fn(8, interrupt_impls::int8, false, true)
             .finish();
         sdebugsln("Prepared IDT");
         unsafe {
