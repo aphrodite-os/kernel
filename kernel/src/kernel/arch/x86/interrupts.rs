@@ -118,7 +118,6 @@ pub unsafe fn activate_idt(idt: Idt) {
         offset_low: 0,
         vector: 0,
     }; 256];
-    let entries_len = idt.len;
     let mut f = 0;
     for i in 0..idt.len {
         if idt.using_raw[i] {
@@ -132,7 +131,7 @@ pub unsafe fn activate_idt(idt: Idt) {
         let exception = idt.exception[i];
 
         let mut entry = IdtEntry {
-            offset_high: ((func & 0xFFFF0000) >> 16) as u16,
+            offset_high: (func >> 16) as u16,
             data: 0b1000000000000000,
             segment: super::gdt::GDT_KERNEL_CODE_SEGMENT,
             offset_low: (func & 0xFFFF) as u16,
@@ -146,12 +145,18 @@ pub unsafe fn activate_idt(idt: Idt) {
         } else {
             entry.data |= 0b111000000000;
         }
-        sdebugs("Entry vector=");
-        sdebugbnpln(&crate::u16_as_u8_slice(entry.vector));
         entries[f] = entry;
+        sdebugs("Entry vector=");
+        sdebugbnp(&crate::u16_as_u8_slice(entries[f].vector));
+        sdebugsnp(" f=");
+        sdebugbnpln(&crate::usize_as_u8_slice(f));
         f += 1;
     }
-    entries.sort_by(|ele1: &IdtEntry, ele2: &IdtEntry| ele1.vector.cmp(&ele2.vector));
+
+    (&mut entries[..idt.len]).sort_by_key(|ele: &IdtEntry| ele.vector);
+    // as entries is a 256 element array, if we don't take a slice of it it will shove all of the
+    // non-existant entries at the start(right after valid entry 0, if it exists)
+
     sdebugsln("IDT entries prepared and sorted");
     let mut last_vector = 0u16;
     let mut start = true;
@@ -163,16 +168,22 @@ pub unsafe fn activate_idt(idt: Idt) {
         offset_low: 0,
         vector: 0,
     }; 256];
+
     f = 0;
 
-    for entry in &entries[..entries_len] {
+    for entry in &entries[..idt.len] {
         sdebugs("Entry vector=");
         sdebugbnp(&crate::u16_as_u8_slice(entry.vector));
         sdebugsnp(" f=");
-        sdebugbnpln(&crate::usize_as_u8_slice(f));
+        sdebugbnp(&crate::usize_as_u8_slice(f));
+        if entry.data>>15 & 1 == 1 {
+            sdebugsnpln(" valid");
+        } else {
+            sdebugsnpln(" not valid");
+        }
         if start {
             let mut vector = entry.vector;
-            while vector > 0 {
+            while vector > 1 {
                 entries2[f] = IdtEntry {
                     offset_high: 0,
                     data: 0,
@@ -191,7 +202,7 @@ pub unsafe fn activate_idt(idt: Idt) {
         }
         if entry.vector - last_vector > 0 {
             let mut vector = entry.vector - last_vector;
-            while vector > 0 {
+            while vector > 1 {
                 entries2[f] = IdtEntry {
                     offset_high: 0,
                     data: 0,
@@ -208,6 +219,9 @@ pub unsafe fn activate_idt(idt: Idt) {
         f += 1;
     }
 
+    sdebugs("Number of entries counting filler: ");
+    sdebugbnpln(&crate::usize_as_u8_slice(f));
+
     let mut raw_entries = [RawIdtEntry {
         offset_high: 0,
         data: 0,
@@ -216,6 +230,15 @@ pub unsafe fn activate_idt(idt: Idt) {
     }; 256];
     f = 0;
     for entry in &entries2 {
+        sdebugs("Entry vector=");
+        sdebugbnp(&crate::u16_as_u8_slice(entry.vector));
+        sdebugsnp(" f=");
+        sdebugbnp(&crate::usize_as_u8_slice(f));
+        if entry.data>>15 & 1 == 1 {
+            sdebugsnpln(" valid");
+        } else {
+            sdebugsnpln(" not valid");
+        }
         raw_entries[f] = RawIdtEntry::from(*entry);
         f += 1;
     }

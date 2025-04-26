@@ -388,5 +388,6 @@ fn spin_on_panic(info: &PanicInfo) -> ! {
         sfatalsnp("\n");
     }
     aphrodite::arch::interrupts::disable_interrupts();
+    #[allow(clippy::empty_loop)]
     loop {}
 }
