@@ -246,7 +246,7 @@ pub unsafe fn activate_idt(idt: Idt) {
     unsafe {
         load_idt(
             (&raw_entries) as *const [RawIdtEntry; 256] as *const u8,
-            (idt.len * 8) - 1,
+            (256 * 8) - 1,
         );
     }
 }
