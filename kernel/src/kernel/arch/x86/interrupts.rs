@@ -93,13 +93,9 @@ pub struct IdtEntry {
 }
 
 impl IdtEntry {
-    pub fn from_data(
-        func: unsafe fn(),
-        user_callable: bool,
-        exception: bool
-    ) -> Self {
+    pub fn from_data(func: unsafe fn(), user_callable: bool, exception: bool) -> Self {
         let func = func as usize as u32;
-        let mut entry = Self { 
+        let mut entry = Self {
             offset_high: (func >> 16) as u16,
             data: 0b1000000000000000,
             segment: super::gdt::GDT_KERNEL_CODE_SEGMENT,

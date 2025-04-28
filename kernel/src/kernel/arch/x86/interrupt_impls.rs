@@ -2,7 +2,7 @@
 #![cfg(target_arch = "x86")]
 #![allow(undefined_naked_function_abi)] // special calling convention anyway
 
-use core::arch::{naked_asm, asm};
+use core::arch::{asm, naked_asm};
 
 macro_rules! int_wrapper {
     ($func:block, $num:expr) => {
@@ -45,9 +45,7 @@ int_wrapper!(
         }
         super::output::sfatalsln("Double fault encountered; halting system!");
         unsafe {
-            asm!(
-                "hlt"
-            );
+            asm!("hlt");
         }
     },
     8
@@ -57,9 +55,7 @@ int_wrapper!(
     {
         super::output::sfatalsln("Unimplemented interrupt! Halting system.");
         unsafe {
-            asm!(
-                "hlt"
-            );
+            asm!("hlt");
         }
     },
     default

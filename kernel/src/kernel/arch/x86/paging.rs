@@ -1,7 +1,8 @@
 //! Functions and types related to paging.
 #![cfg(target_arch = "x86")]
 
-use core::{arch::asm, mem::MaybeUninit};
+use core::arch::asm;
+use core::mem::MaybeUninit;
 
 use super::cpuid;
 
@@ -119,7 +120,7 @@ static mut PAGE_DIRECTORY: MaybeUninit<PageDirectoryEntry> = MaybeUninit::uninit
 
 /// Initalize paging.
 pub fn initalize_paging(pae: bool) {
-    if cpuid(1).1 & 1<<6 != 0 && pae {
+    if cpuid(1).1 & 1 << 6 != 0 && pae {
         unsafe {
             asm!(
                 "mov eax, cr4",
