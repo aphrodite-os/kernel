@@ -23,6 +23,7 @@
 #![feature(vec_into_raw_parts)]
 #![feature(naked_functions)]
 #![feature(generic_const_exprs)]
+#![feature(abi_x86_interrupt)]
 
 extern crate alloc;
 

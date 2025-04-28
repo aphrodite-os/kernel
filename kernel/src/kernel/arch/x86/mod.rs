@@ -158,18 +158,45 @@ pub fn alloc_available_boot() {
         sdebugsln("Setting up IDT");
 
         let mut idt = self::interrupts::new_idt_zeroed();
-        idt[0] = self::interrupts::IdtEntry::from_data(interrupt_impls::int0, false, true);
-        idt[8] = self::interrupts::IdtEntry::from_data(interrupt_impls::int8, false, true);
+        idt[0] = self::interrupts::IdtEntry::from_data(
+            get_actual_address(interrupt_impls::int0 as usize),
+            false,
+            true,
+        );
+        idt[8] = self::interrupts::IdtEntry::from_data(
+            get_actual_address(interrupt_impls::int8 as usize),
+            false,
+            true,
+        );
 
         sdebugsln("Prepared IDT");
         unsafe {
             interrupts::load_idt(
                 (&idt) as *const [self::interrupts::IdtEntry; 256] as *const u8,
-                (256 * 8) - 1,
+                2047,
             );
         }
         sdebugsln("IDT activated; enabling interrupts");
         enable_interrupts();
+        unsafe {
+            asm!("xchg bx, bx");
+        }
         sdebugsln("IDT successfully loaded");
     }
+}
+
+fn get_actual_address(addr: usize) -> usize {
+    let out;
+    unsafe {
+        asm!(
+            "mov ebx, get_addr_actual",
+            "call get_addr_actual",
+            in("ecx") addr, out("eax") _, out("ebx") _, lateout("ecx") out
+        );
+    }
+    sdebugs("actual address: passed: ");
+    sdebugbnp(&crate::usize_as_u8_slice(addr));
+    sdebugsnp(" actual: ");
+    sdebugbnpln(&crate::usize_as_u8_slice(out));
+    out
 }

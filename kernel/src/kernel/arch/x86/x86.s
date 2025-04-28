@@ -1,6 +1,7 @@
 .intel_syntax noprefix
 
 .global reloadSegments
+.global get_addr_actual
 
 reloadSegments:
    mov   ax, 0x10
@@ -21,3 +22,11 @@ reloadSegments:
 get_retaddr_ppro: # returns the return address via eax
    mov  eax, [esp]
    ret
+
+# get the address of something. ebx contains the supposed address of this function; ecx contains the supposed address of the target.
+# Output is in ecx. Clobbers eax, ebx.
+get_addr_actual:
+   call get_retaddr_ppro
+   sub eax, 5
+   sub eax, ebx
+   add ecx, eax

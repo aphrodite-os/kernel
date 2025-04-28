@@ -87,27 +87,29 @@ pub unsafe fn load_idt(base: *const u8, size: usize) {
 #[repr(C, packed)]
 pub struct IdtEntry {
     pub offset_high: u16,
-    pub data: u16,
     pub segment: u16,
+    filler: u8,
+    pub attrs: u8,
     pub offset_low: u16,
 }
 
 impl IdtEntry {
-    pub fn from_data(func: unsafe fn(), user_callable: bool, exception: bool) -> Self {
-        let func = func as usize as u32;
+    pub fn from_data(func: usize, user_callable: bool, exception: bool) -> Self {
+        let func = func as u32;
         let mut entry = Self {
             offset_high: (func >> 16) as u16,
-            data: 0b1000000000000000,
             segment: super::gdt::GDT_KERNEL_CODE_SEGMENT,
+            attrs: 0b10000000,
+            filler: 0,
             offset_low: (func & 0xFFFF) as u16,
         };
         if user_callable {
-            entry.data |= 0b110000000000000;
+            entry.attrs |= 0b1100000;
         }
         if exception {
-            entry.data |= 0b111100000000;
+            entry.attrs |= 0b1111;
         } else {
-            entry.data |= 0b111000000000;
+            entry.attrs |= 0b1110;
         }
         entry
     }
@@ -117,5 +119,5 @@ impl IdtEntry {
 pub type Idt = [IdtEntry; 256];
 
 pub fn new_idt_zeroed() -> Idt {
-    [IdtEntry::from_data(super::interrupt_impls::intdefault, false, false); 256]
+    [IdtEntry::from_data(super::interrupt_impls::intdefault as usize, false, false); 256]
 }
