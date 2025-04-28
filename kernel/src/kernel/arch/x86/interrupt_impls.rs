@@ -52,3 +52,15 @@ int_wrapper!(
     },
     8
 );
+
+int_wrapper!(
+    {
+        super::output::sfatalsln("Unimplemented interrupt! Halting system.");
+        unsafe {
+            asm!(
+                "hlt"
+            );
+        }
+    },
+    default
+);

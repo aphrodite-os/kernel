@@ -156,13 +156,17 @@ pub fn alloc_available_boot() {
     {
         // IDT
         sdebugsln("Setting up IDT");
-        let idt = self::interrupts::IdtBuilder::new()
-            .add_fn(0, interrupt_impls::int0, false, true)
-            .add_fn(8, interrupt_impls::int8, false, true)
-            .finish();
+
+        let mut idt = self::interrupts::new_idt_zeroed();
+        idt[0] = self::interrupts::IdtEntry::from_data(interrupt_impls::int0, false, true);
+        idt[8] = self::interrupts::IdtEntry::from_data(interrupt_impls::int8, false, true);
+
         sdebugsln("Prepared IDT");
         unsafe {
-            interrupts::activate_idt(idt);
+            interrupts::load_idt(
+                (&idt) as *const [self::interrupts::IdtEntry; 256] as *const u8,
+                (256 * 8) - 1,
+            );
         }
         sdebugsln("IDT activated; enabling interrupts");
         enable_interrupts();
