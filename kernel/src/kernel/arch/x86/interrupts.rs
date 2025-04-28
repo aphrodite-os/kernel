@@ -67,18 +67,18 @@ struct Idtr {
 /// Loads an interrupt descriptor table.
 #[inline(always)]
 pub unsafe fn load_idt(base: *const u8, size: usize) {
-    static mut IDTR: Idtr = Idtr {
-        base: 0 as *const u8,
-        size: 0,
-    };
-    unsafe {
-        IDTR = Idtr { base, size };
-    }
     unsafe {
         asm!(
-            "xchg bx, bx",
-            "lidt {}",
-            sym IDTR
+            "mov [3f], ax", // load limit
+            "mov [3f+2], ebx", // load base
+            "lidt [3f]", // load IDT
+            "jmp 2f", // jump past the data
+            "3:", // IDT data
+            "nop; nop; nop; nop; nop; nop",
+            "2:", // end
+            in("ax") size as u16,
+            in("ebx") base as usize as u32,
+            options(readonly)
         )
     }
 }
