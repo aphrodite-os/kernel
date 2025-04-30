@@ -1,0 +1,8 @@
+                      APHRODITE KERNEL
+The Aphrodite kernel(also sometimes referred to as Aphrokern)
+is an incomplete kernel being actively worked on. Currently,
+support for the i686 architecture with a Multiboot 2 bootloader
+is being prioritized.
+
+Aphrokern is licensed under the GPL-3.0-or-later license,
+contained within the LICENSE file.
