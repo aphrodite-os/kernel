@@ -28,5 +28,6 @@ get_retaddr_ppro: # returns the return address via eax
 get_addr_actual:
    call get_retaddr_ppro
    sub eax, 5
-   sub eax, ebx
-   add ecx, eax
+   sub ebx, eax
+   add ecx, ebx
+   ret

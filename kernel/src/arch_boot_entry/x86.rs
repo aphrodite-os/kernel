@@ -6,7 +6,7 @@
 #![allow(unexpected_cfgs)]
 #![allow(static_mut_refs)]
 #![feature(ptr_metadata)]
-#![feature(cfg_match)]
+#![feature(cfg_select)]
 #![feature(formatting_options)]
 
 use core::arch::asm;
@@ -24,18 +24,11 @@ use aphrodite::multiboot2::{
 #[cfg(not(CONFIG_DISABLE_MULTIBOOT2_SUPPORT))]
 #[unsafe(link_section = ".bootheader")]
 #[unsafe(no_mangle)]
-static MULTIBOOT2_HEADER: [u8; 48] = [
+static MULTIBOOT2_HEADER: [u8; 24] = [
     0xd6, 0x50, 0x52, 0xe8, // Magic number
     0x00, 0x00, 0x00, 0x00, // Architecture
     0x18, 0x00, 0x00, 0x00, // Size
     0x12, 0xaf, 0xad, 0x17, // Checksum
-    0x0A, 0x00, // Relocatable tag
-    0x00, 0x00, // Flags,
-    0x18, 0x00, 0x00, 0x00, // Size of tag
-    0x00, 0x00, 0x00, 0x00, // Starting minimum location
-    0xFF, 0xFF, 0xFF, 0xFF, // Ending maximum location: End of 32-bit address space
-    0x00, 0x00, 0x00, 0x00, // Image alignment
-    0x01, 0x00, 0x00, 0x00, // Loading preference: lowest possible
     0x00, 0x00, // End tag
     0x00, 0x00, // Flags
     0x08, 0x00, 0x00, 0x00, // Size
@@ -183,15 +176,6 @@ extern "C" fn _start() -> ! {
                             // Above is a bit hard to understand, but what it does is transmute
                             // rawmemorymap's sections into a pointer to those sections
 
-                            for ele in &mut *memorysections {
-                                (*ele) = core::mem::transmute::<
-                                    aphrodite::boot::MemoryMapping,
-                                    aphrodite::multiboot2::MemorySection,
-                                >(
-                                    Into::<MemoryMapping>::into(*ele)
-                                )
-                            }
-
                             MM = MemoryMap {
                                 version: (*rawmemorymap).entry_version,
                                 entry_size: (*rawmemorymap).entry_size,
@@ -241,7 +225,7 @@ extern "C" fn _start() -> ! {
                                 2 => { // EGA Text  
                                 },
                                 _ => {
-                                    panic!("unknown color info type")
+                                    unreachable!()
                                 },
                             }
                             let framebuffer_info = (*framebufferinfo).clone();
@@ -279,7 +263,7 @@ extern "C" fn _start() -> ! {
                     sinfounp(b'\n');
                     ptr = (ptr + current_tag.tag_len as usize + 7) & !7;
                     if ptr > end_addr {
-                        cfg_match! {
+                        cfg_select! {
                             all(CONFIG_PREUSER_ERROR_ON_INVALID_LENGTH = "true", CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH = "false") => {
                                 serrorsln("Current tag length would put pointer out-of-bounds; CONFIG_PREUSER_ERROR_ON_INVALID_LENGTH is set, continuing");
                             }
@@ -287,7 +271,7 @@ extern "C" fn _start() -> ! {
                                 swarningsln("Current tag length would put pointer out-of-bounds; CONFIG_PREUSER_WARN_ON_INVALID_LENGTH is set, continuing");
                             }
                         }
-                        cfg_match! {
+                        cfg_select! {
                             not(CONFIG_PREUSER_PANIC_ON_INVALID_LENGTH = "false") => {
                                 panic!("current tag length would put pointer out-of-bounds")
                             }
@@ -344,20 +328,9 @@ extern "C" fn _start() -> ! {
 fn halt_on_panic(info: &PanicInfo) -> ! {
     use core::fmt::FormattingOptions;
 
-    if info.location().is_some() {
-        sfatals("Panic at ");
-        sfatalsnp(info.location().unwrap().file());
-        sfatalsnp(":");
-        sfatalbnp(&aphrodite::u32_as_u8_slice(info.location().unwrap().line()));
-        sfatalsnp(":");
-        sfatalbnpln(&aphrodite::u32_as_u8_slice(
-            info.location().unwrap().column(),
-        ));
-    } else {
-        sfatals("Panic: ");
-    }
-    let mut formatter = FormattingOptions::new().create_formatter(unsafe { &mut FBI });
-    let _ = info.message().fmt(&mut formatter);
+    sfatalsln("Panic");
+    // let mut formatter = FormattingOptions::new().create_formatter(unsafe { &mut
+    // FBI }); let _ = info.message().fmt(&mut formatter);
     aphrodite::arch::interrupts::disable_interrupts();
     unsafe {
         asm!("hlt", options(noreturn));
@@ -368,25 +341,7 @@ fn halt_on_panic(info: &PanicInfo) -> ! {
 #[panic_handler]
 #[cfg(all(CONFIG_SPIN_ON_PANIC = "true", CONFIG_HALT_ON_PANIC = "false"))]
 fn spin_on_panic(info: &PanicInfo) -> ! {
-    if info.location().is_some() {
-        sfatals("Panic at ");
-        sfatalsnp(info.location().unwrap().file());
-        sfatalsnp(":");
-        sfatalbnp(&aphrodite::u32_as_u8_slice(info.location().unwrap().line()));
-        sfatalsnp(":");
-        sfatalbnp(&aphrodite::u32_as_u8_slice(
-            info.location().unwrap().column(),
-        ));
-        sfatalsnp(": ");
-    } else {
-        sfatals("Panic: ");
-    }
-    let message = info.message().as_str().unwrap_or("");
-    if message != "" {
-        sfatalsnpln(message);
-    } else {
-        sfatalsnp("\n");
-    }
+    sfatalsln("Panic");
     aphrodite::arch::interrupts::disable_interrupts();
     #[allow(clippy::empty_loop)]
     loop {}

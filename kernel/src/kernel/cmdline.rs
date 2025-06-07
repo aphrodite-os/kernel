@@ -7,7 +7,7 @@ pub enum ArgumentValue {
     /// removed, and any \' replaced with '.
     Str(&'static str),
     /// A float argument.
-    Float(f128),
+    Float(f64),
     /// A signed argument.
     Signed(i128),
     /// A unsigned argument.

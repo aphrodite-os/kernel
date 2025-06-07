@@ -45,6 +45,5 @@ pub fn indep_boot_entry(
         }
     }
 
-    #[allow(clippy::empty_loop)]
     loop {}
 }

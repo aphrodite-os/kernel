@@ -159,12 +159,12 @@ pub fn alloc_available_boot() {
 
         let mut idt = self::interrupts::new_idt_zeroed();
         idt[0] = self::interrupts::IdtEntry::from_data(
-            get_actual_address(interrupt_impls::int0 as usize),
+            interrupt_impls::int0 as usize,
             false,
             true,
         );
         idt[8] = self::interrupts::IdtEntry::from_data(
-            get_actual_address(interrupt_impls::int8 as usize),
+            interrupt_impls::int8 as usize,
             false,
             true,
         );

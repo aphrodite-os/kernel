@@ -65,8 +65,8 @@ fn main() -> Result<(), std::io::Error> {
         if !var.starts_with("CONFIG_") {
             continue;
         }
-        println!("cargo:rerun-if-env-changed={}", var);
-        println!("cargo:rustc-cfg={}=\"{}\"", var, val);
+        println!("cargo:rerun-if-env-changed={var}");
+        println!("cargo:rustc-cfg={var}=\"{val}\"");
     }
 
     if !std::process::Command::new("as")
